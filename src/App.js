@@ -1,4 +1,5 @@
-import { Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
+import GameComponent from "./components/GameComponent/GameComponent";
 // import { InGame } from "./scenes/HomePage/HomePage";
 
 export function App() {
@@ -6,7 +7,7 @@ export function App() {
       <>
          <Routes>
             {/* Main Menu */}
-            {/* <Route path="/" element={<InGame />} /> */}
+            <Route path="/" element={<GameComponent />} />
             {/* Score */}
          </Routes>
       </>
