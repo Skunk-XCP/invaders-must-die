@@ -3,7 +3,7 @@ import GameScene from "../../scenes/GameScene/GameScene";
 
 const phaserConfig = {
    type: Phaser.AUTO,
-   width: 800,
+   width: 1200,
    height: 1200,
    physics: {
       default: "arcade",
@@ -16,7 +16,7 @@ const phaserConfig = {
    scene: [GameScene],
    scale: {
       parent: "phaser-game",
-      mode: Phaser.Scale.FIT,
+      mode: Phaser.Scale.NONE,
       autoCenter: Phaser.Scale.CENTER_BOTH,
    },
 };
