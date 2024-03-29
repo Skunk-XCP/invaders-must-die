@@ -46,6 +46,15 @@ export default class GameScene extends Phaser.Scene {
          .setBlendMode(Phaser.BlendModes.ADD);
       this.boost.setScale(shipScale);
 
+      // Créer un "tween" pour le clignotement
+      this.boostTween = this.tweens.add({
+         targets: this.boost,
+         alpha: { from: 0.4, to: 1 },
+         duration: 100, // Durée d'un clignotement
+         yoyo: true, // Fait aller l'alpha de 0.5 à 1 puis de 1 à 0.5
+         repeat: -1, // Répète l'animation indéfiniment
+      });
+
       // Configuration du clavier
       this.WASD = this.input.keyboard.addKeys({
          up: Phaser.Input.Keyboard.KeyCodes.W,
@@ -58,10 +67,10 @@ export default class GameScene extends Phaser.Scene {
    resize(gameSize) {
       const { width, height } = gameSize;
 
-      // Adapter la taille du fond à la nouvelle taille de l'écran
+      // Adapte la taille du fond à la nouvelle taille de l'écran
       this.background.setDisplaySize(width, height);
 
-      // Calculer la nouvelle échelle du vaisseau basée sur la proportion définie
+      // Calcule la nouvelle échelle du vaisseau basée sur la proportion définie
       let shipScale = (height * this.shipProportion) / this.playerShip.height;
       this.playerShip.setScale(shipScale);
       this.playerShip.setPosition(
@@ -79,26 +88,50 @@ export default class GameScene extends Phaser.Scene {
 
    update() {
       const shipSpeed = 5;
+      const shipWidthOffset = this.playerShip.displayWidth / 2;
+      // Utilise la hauteur entière du vaisseau pour la limite supérieure
+      const shipTopOffset = this.playerShip.displayHeight;
+      // Définit une limite inférieure pour garder de l'espace entre scene et ship
+      const shipBottomLimit =
+         this.scale.height - this.playerShip.displayHeight / 4;
 
-      // Mouvement du vaisseau
+      // Mouvement horizontal avec limite
       if (this.WASD.left.isDown) {
-         this.playerShip.x -= shipSpeed;
+         this.playerShip.x = Phaser.Math.Clamp(
+            this.playerShip.x - shipSpeed,
+            shipWidthOffset,
+            this.scale.width - shipWidthOffset
+         );
       } else if (this.WASD.right.isDown) {
-         this.playerShip.x += shipSpeed;
+         this.playerShip.x = Phaser.Math.Clamp(
+            this.playerShip.x + shipSpeed,
+            shipWidthOffset,
+            this.scale.width - shipWidthOffset
+         );
       }
 
-      // Mouvement vertical
+      // Mouvement vertical avec limite
       if (this.WASD.up.isDown) {
-         this.playerShip.y -= shipSpeed;
+         this.playerShip.y = Phaser.Math.Clamp(
+            this.playerShip.y - shipSpeed,
+            shipTopOffset,
+            shipBottomLimit // Utilise la limite inférieure définie
+         );
          this.boost.setVisible(true);
-         this.boost.x = this.playerShip.x; // Position X du boost est alignée avec celle du vaisseau
-         this.boost.y = this.playerShip.y - this.playerShip.displayHeight / 2; // Position Y du boost est juste au-dessus du vaisseau
       } else {
          this.boost.setVisible(false);
       }
 
       if (this.WASD.down.isDown) {
-         this.playerShip.y += shipSpeed;
+         this.playerShip.y = Phaser.Math.Clamp(
+            this.playerShip.y + shipSpeed,
+            shipTopOffset,
+            shipBottomLimit
+         );
       }
+
+      // Alignement du boost
+      this.boost.x = this.playerShip.x;
+      this.boost.y = this.playerShip.y - this.playerShip.displayHeight / 2;
    }
 }
