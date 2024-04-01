@@ -8,6 +8,11 @@ export default function GameComponent() {
       // Initialiser le jeu Phaser quand le composant est monté
       const game = new Phaser.Game(phaserConfig);
 
+      // Empêcher le menu contextuel sur le canvas du jeu
+      game.canvas.addEventListener("contextmenu", function (event) {
+         event.preventDefault();
+      });
+
       // Faire le nettoyage quand le composant sera démonté
       return () => {
          game.destroy(true);

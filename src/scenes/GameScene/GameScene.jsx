@@ -99,6 +99,7 @@ export default class GameScene extends Phaser.Scene {
          (this.scale.height * shipProportion) / this.playerShip.height;
       this.playerShip.setScale(shipScale);
 
+      // TODO retirer couleur hitbox
       // Ajout hitbox au centre du vaisseau
       let hitboxWidth = this.playerShip.displayWidth * shipScale * 0.4;
       let hitboxHeight = this.playerShip.displayHeight * shipScale * 0.4;
@@ -196,6 +197,15 @@ export default class GameScene extends Phaser.Scene {
       // Lorsque le bouton de la souris est relâché, arrête de tirer
       this.input.on("pointerup", () => {
          this.isFiring = false;
+      });
+
+      // Annule l'ouverture du menu contextuel du clic droit
+      this.input.on("pointerdown", function (pointer) {
+         if (pointer.rightButtonDown()) {
+            // Empêche le menu contextuel de s'ouvrir
+            pointer.event.preventDefault();
+            // Place ici la logique pour le tir secondaire
+         }
       });
    }
 
