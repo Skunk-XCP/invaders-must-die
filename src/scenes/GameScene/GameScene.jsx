@@ -8,6 +8,9 @@ export default class GameScene extends Phaser.Scene {
       this.timeSinceLastRocket = 0; // Temps écoulé depuis le dernier tir
       this.rocketFireRate = 200; // Taux de tir en millisecondes
       this.hitboxVerticalOffset = 0.5;
+      this.nebulas = ["nebula1", "nebula2", "nebula3"];
+      this.lastNebulaTime = 0;
+      this.nebulaInterval = Phaser.Math.Between(100000, 250000);
    }
 
    preload() {
@@ -20,7 +23,9 @@ export default class GameScene extends Phaser.Scene {
       });
       this.load.image("playerShip", "/assets/sprites/playerShips/1B.png");
       this.load.image("boost", "/assets/sprites/effects/boost/boost.png");
-      // this.load.image("artworkLeft", "/assets/artworks/artworkLeft.png"); //pas utilisé pour l'instant
+      this.load.image("nebula1", "/assets/nebula/Nebula1.png");
+      this.load.image("nebula2", "/assets/nebula/Nebula2.png");
+      this.load.image("nebula3", "/assets/nebula/Nebula3.png");
       this.load.image(
          "playerRocket0",
          "/assets/sprites/effects/playerRocket/rocket_1_0000.png"
@@ -125,10 +130,13 @@ export default class GameScene extends Phaser.Scene {
       this.rockets = [];
 
       //* Affichage du fond adapté à la taille de l'écran
-      this.background = this.add
-         .image(this.scale.width / 2, this.scale.height / 2, "background")
-         .setOrigin(0.5, 0.5)
-         .setDisplaySize(this.scale.width, this.scale.height);
+      this.background = this.add.tileSprite(
+         this.scale.width / 2,
+         this.scale.height / 2,
+         this.scale.width,
+         this.scale.height,
+         "background"
+      );
 
       //* Création du vaisseau et ajustement de sa taille
       this.playerShip = this.physics.add
@@ -296,8 +304,8 @@ export default class GameScene extends Phaser.Scene {
       // TODO Ajouter logique pour déplacer les roquettes ou gérer les collisions
    }
 
-   update(_, delta) {
-      const shipSpeed = 3;
+   update(time, delta) {
+      const shipSpeed = 4;
       const shipWidthOffset = this.playerShip.displayWidth / 2;
       //* Utilise la hauteur entière du vaisseau pour la limite supérieure
       const shipTopOffset = this.playerShip.displayHeight;
@@ -371,5 +379,54 @@ export default class GameScene extends Phaser.Scene {
          this.fireRockets();
          this.timeSinceLastRocket = 0;
       }
+
+      // Déplace le background vers le haut
+      this.background.tilePositionY -= 0.3;
+
+      // Gestion de l'apparition des nébulas
+      if (time - this.lastNebulaTime > this.nebulaInterval) {
+         this.spawnNebula();
+         this.lastNebulaTime = time;
+         this.nebulaInterval = Phaser.Math.Between(100000, 250000); // Prochain intervalle
+      }
+   }
+
+   spawnNebula() {
+      // Sélection aléatoire d'une nébula
+      let randomNebulaKey = Phaser.Math.RND.pick(this.nebulas);
+      let nebula = this.add.image(
+         Phaser.Math.Between(0, this.scale.width), // Position horizontale aléatoire
+         -300, // Démarre au-dessus de l'écran pour une entrée progressive
+         randomNebulaKey
+      );
+
+      // Ajustement de la profondeur pour que la nébula soit derrière le background transparent
+      nebula.setDepth(-1);
+
+      // Affectation d'une rotation aléatoire à la nébula
+      let randomRotation = Phaser.Math.Between(-180, 180);
+      nebula.setRotation(Phaser.Math.DegToRad(randomRotation));
+
+      // Ajoute un effet mirror horizontal aléatoire
+      if (Phaser.Math.RND.pick([true, false])) {
+         nebula.setFlipX(true);
+      }
+
+      // Ajustement de la taille de la nébula
+      let scale = Phaser.Math.Between(0.5, 1);
+      nebula.setScale(scale);
+
+      // Définition de la vitesse de la nébula
+      let speed = Phaser.Math.Between(100, 200);
+      this.tweens.add({
+         targets: nebula,
+         y: this.scale.height + nebula.height * scale + 100, // Déplace verticalement jusqu'à ce qu'elle soit complètement sortie de l'écran par le bas
+         ease: "Linear",
+         duration: speed * 500, // Augmente la durée pour un mouvement plus lent et naturel
+         repeat: 0,
+         onComplete: () => {
+            nebula.destroy(); // Destruction de la nébula une fois qu'elle a traversé l'écran
+         },
+      });
    }
 }
