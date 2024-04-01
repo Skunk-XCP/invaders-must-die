@@ -8,23 +8,17 @@ export default function GameComponent() {
       // Initialiser le jeu Phaser quand le composant est monté
       const game = new Phaser.Game(phaserConfig);
 
-      // Empêcher le menu contextuel sur le canvas du jeu
-      const gameCanvas = document.getElementById("phaser-game");
-      if (gameCanvas) {
-         gameCanvas.addEventListener("contextmenu", (event) => {
-            event.preventDefault();
-         });
-      }
+      // Empêche le menu contextuel sur le canvas du jeu
+      const handleRightClick = (event) => {
+         event.preventDefault();
+      };
+
+      document.addEventListener("contextmenu", handleRightClick);
 
       // Faire le nettoyage quand le composant sera démonté
       return () => {
          game.destroy(true);
-         if (gameCanvas) {
-            // Remove the event listener
-            gameCanvas.removeEventListener("contextmenu", (event) => {
-               event.preventDefault();
-            });
-         }
+         document.removeEventListener("contextmenu", handleRightClick);
       };
    }, []);
 
