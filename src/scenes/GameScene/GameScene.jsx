@@ -31,6 +31,29 @@ export default class GameScene extends Phaser.Scene {
          (this.scale.height * shipProportion) / this.playerShip.height;
       this.playerShip.setScale(shipScale);
 
+      // Ajout hitbox au centre du vaisseau
+      let hitboxWidth = this.playerShip.displayWidth * shipScale * 0.4;
+      let hitboxHeight = this.playerShip.displayHeight * shipScale * 0.4;
+      let hitboxX = this.playerShip.x;
+      let hitboxY =
+         this.playerShip.y - (this.playerShip.displayHeight * shipScale) / 2;
+      this.shipHitbox = this.add.rectangle(
+         hitboxX,
+         hitboxY,
+         hitboxWidth,
+         hitboxHeight,
+         0xff0000,
+         0.5
+      );
+      this.physics.add.existing(this.shipHitbox); // Cela transforme le rectangle en objet physique
+      this.shipHitbox.body.isSensor = true; // Cela transforme le corps en capteur pour les collisions
+
+      // Attache hitbox au ship
+      this.playerShip.body.setOffset(
+         this.shipHitbox.width / 2,
+         this.shipHitbox.height / 2
+      );
+
       // Position du vaisseau en bas au milieu de l'écran
       this.playerShip.y = this.scale.height - this.playerShip.displayHeight / 2;
 
@@ -133,5 +156,12 @@ export default class GameScene extends Phaser.Scene {
       // Alignement du boost
       this.boost.x = this.playerShip.x;
       this.boost.y = this.playerShip.y - this.playerShip.displayHeight / 2;
+
+      // Update position hitbox pour suivre ship
+      this.shipHitbox.setPosition(
+         this.playerShip.x,
+         this.playerShip.y -
+            (this.playerShip.displayHeight * this.playerShip.scale) / 1.1
+      );
    }
 }
