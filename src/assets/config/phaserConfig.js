@@ -1,14 +1,8 @@
 import Phaser from "phaser";
 import GameScene from "../../scenes/GameScene/GameScene";
 
-const gameWidth =
-   window.innerWidth ||
-   document.documentElement.clientWidth ||
-   document.body.clientWidth;
-const gameHeight =
-   window.innerHeight ||
-   document.documentElement.clientHeight ||
-   document.body.clientHeight;
+const gameWidth = window.innerWidth * 0.7;
+const gameHeight = window.innerHeight;
 
 const phaserConfig = {
    type: Phaser.AUTO,
@@ -21,10 +15,8 @@ const phaserConfig = {
          debug: false,
       },
    },
-   //scene phaser
    scene: [GameScene],
    scale: {
-      parent: "phaser-game",
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
    },

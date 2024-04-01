@@ -7,13 +7,20 @@ export default class GameScene extends Phaser.Scene {
       this.isFiring = false;
       this.timeSinceLastRocket = 0; // Temps écoulé depuis le dernier tir
       this.rocketFireRate = 200; // Taux de tir en millisecondes
+      this.hitboxVerticalOffset = 0.5;
    }
 
    preload() {
       // precharger assets
-      this.load.image("background", "assets/backgroundStage/background.webp");
+      this.load.image("background", "assets/stars/Stars.png");
+      this.load.on("filecomplete", function (key, type, data) {
+         if (key === "background") {
+            console.log("Background image loaded");
+         }
+      });
       this.load.image("playerShip", "/assets/sprites/playerShips/1B.png");
       this.load.image("boost", "/assets/sprites/effects/boost/boost.png");
+      // this.load.image("artworkLeft", "/assets/artworks/artworkLeft.png"); //pas utilisé pour l'instant
       this.load.image(
          "playerRocket0",
          "/assets/sprites/effects/playerRocket/rocket_1_0000.png"
@@ -80,18 +87,50 @@ export default class GameScene extends Phaser.Scene {
       );
    }
 
+   init(data) {
+      //* Ici, tu peux initialiser les propriétés de ta scène avec les données passées
+      this.gameWidth = data.width;
+      this.gameHeight = data.height;
+   }
+
    create() {
-      // Définir la proportion du vaisseau par rapport à la hauteur de l'écran
+      //* Création du fond de la scène de jeu (70% de la largeur de l'écran)
+      this.add.rectangle(
+         this.gameWidth / 2,
+         this.gameHeight / 2,
+         this.gameWidth,
+         this.gameHeight,
+         0x000000
+      );
+
+      //* Création des bandes latérales (15% de la largeur de l'écran de chaque côté)
+      const sidebarWidth = window.innerWidth * 0.15;
+      this.add.rectangle(
+         sidebarWidth / 2,
+         this.gameHeight / 2,
+         sidebarWidth,
+         this.gameHeight,
+         0x333333
+      );
+      this.add.rectangle(
+         this.gameWidth + sidebarWidth / 2,
+         this.gameHeight / 2,
+         sidebarWidth,
+         this.gameHeight,
+         0x333333
+      );
+
+      //* Défini la proportion du vaisseau par rapport à la hauteur de l'écran
       const shipProportion = 0.1;
       this.rockets = [];
 
-      // Affichage du fond adapté à la taille de l'écran
+      //* Affichage du fond adapté à la taille de l'écran
       this.background = this.add
          .image(this.scale.width / 2, this.scale.height / 2, "background")
          .setOrigin(0.5, 0.5)
          .setDisplaySize(this.scale.width, this.scale.height);
 
-      // Création du vaisseau et ajustement de sa taille
+      //* Création du vaisseau et ajustement de sa taille
       this.playerShip = this.physics.add
          .sprite(this.scale.width / 2, this.scale.height, "playerShip")
          .setOrigin(0.5, 1);
@@ -99,34 +138,13 @@ export default class GameScene extends Phaser.Scene {
          (this.scale.height * shipProportion) / this.playerShip.height;
       this.playerShip.setScale(shipScale);
 
-      // TODO retirer couleur hitbox
-      // Ajout hitbox au centre du vaisseau
-      let hitboxWidth = this.playerShip.displayWidth * shipScale * 0.4;
-      let hitboxHeight = this.playerShip.displayHeight * shipScale * 0.4;
-      let hitboxX = this.playerShip.x;
-      let hitboxY =
-         this.playerShip.y - (this.playerShip.displayHeight * shipScale) / 2;
-      this.shipHitbox = this.add.rectangle(
-         hitboxX,
-         hitboxY,
-         hitboxWidth,
-         hitboxHeight,
-         0xff0000,
-         0.5
-      );
-      this.physics.add.existing(this.shipHitbox); // Cela transforme le rectangle en objet physique
-      this.shipHitbox.body.isSensor = true; // Cela transforme le corps en capteur pour les collisions
+      //* Ajout hitbox au centre du vaisseau
+      this.createShipHitbox(shipScale);
 
-      // Attache hitbox au ship
-      this.playerShip.body.setOffset(
-         this.shipHitbox.width / 2,
-         this.shipHitbox.height / 2
-      );
-
-      // Position du vaisseau en bas au milieu de l'écran
+      //* Position du vaisseau en bas au milieu de l'écran
       this.playerShip.y = this.scale.height - this.playerShip.displayHeight / 2;
 
-      // Création du boost
+      //* Création du boost
       this.boost = this.add
          .sprite(
             this.playerShip.x,
@@ -138,7 +156,7 @@ export default class GameScene extends Phaser.Scene {
          .setBlendMode(Phaser.BlendModes.ADD);
       this.boost.setScale(shipScale);
 
-      // Créer un "tween" pour le clignotement
+      //* Créer un "tween" pour le clignotement
       this.boostTween = this.tweens.add({
          targets: this.boost,
          alpha: { from: 0.4, to: 1 },
@@ -172,7 +190,7 @@ export default class GameScene extends Phaser.Scene {
          repeat: 0, // 0 signifie que l'animation ne se répétera pas; elle ne sera jouée qu'une seule fois par appel
       });
 
-      // Configuration du clavier
+      //* Configuration du clavier
       this.WASD = this.input.keyboard.addKeys({
          up: Phaser.Input.Keyboard.KeyCodes.W,
          down: Phaser.Input.Keyboard.KeyCodes.S,
@@ -180,42 +198,61 @@ export default class GameScene extends Phaser.Scene {
          right: Phaser.Input.Keyboard.KeyCodes.D,
       });
 
-      // Configuration du clic de souris pour tirer
+      //* Configuration du clic de souris pour tirer
       this.input.on("pointerdown", (pointer) => {
          if (pointer.leftButtonDown()) {
             this.fireRockets();
          }
       });
 
-      // Configuration du clic de souris pour commencer à tirer
+      //* Configuration du clic de souris pour commencer à tirer
       this.input.on("pointerdown", (pointer) => {
          if (pointer.leftButtonDown()) {
-            this.isFiring = true; // Commence à tirer
+            this.isFiring = true;
          }
       });
 
-      // Lorsque le bouton de la souris est relâché, arrête de tirer
+      //* Lorsque le bouton de la souris est relâché, arrête de tirer
       this.input.on("pointerup", () => {
          this.isFiring = false;
       });
 
-      // Annule l'ouverture du menu contextuel du clic droit
+      //* Annule l'ouverture du menu contextuel du clic droit
       this.input.on("pointerdown", function (pointer) {
          if (pointer.rightButtonDown()) {
             // Empêche le menu contextuel de s'ouvrir
             pointer.event.preventDefault();
-            // Place ici la logique pour le tir secondaire
+            //TODO Ajouter logique pour le tir secondaire
          }
       });
+   }
+
+   createShipHitbox(shipScale) {
+      //* Définie taille hitbox basée sur l'échelle de dimension du ship
+      let hitboxWidth = this.playerShip.displayWidth * 0.3;
+      let hitboxHeight = this.playerShip.displayHeight * 0.3;
+
+      //* Crée et positionne hitbox
+      this.shipHitbox = this.add.rectangle(
+         this.playerShip.x,
+         this.playerShip.y,
+         hitboxWidth,
+         hitboxHeight,
+         0xff0000,
+         0.5 // TODO retirer couleur hitbox = 0
+      );
+
+      //* Faire de la hitbox un objet physique
+      this.shipHitbox.setScrollFactor(0);
    }
 
    resize(gameSize) {
       const { width, height } = gameSize;
 
-      // Adapte la taille du fond à la nouvelle taille de l'écran
+      //* Adapte la taille du fond à la nouvelle taille de l'écran
       this.background.setDisplaySize(width, height);
 
-      // Calcule la nouvelle échelle du vaisseau basée sur la proportion définie
+      //* Calcule la nouvelle échelle du vaisseau basée sur la proportion définie
       let shipScale = (height * this.shipProportion) / this.playerShip.height;
       this.playerShip.setScale(shipScale);
       this.playerShip.setPosition(
@@ -223,18 +260,21 @@ export default class GameScene extends Phaser.Scene {
          height - this.playerShip.displayHeight / 2
       );
 
-      // Adapter la taille et la position du boost
+      //* Adapter la taille et la position du boost
       this.boost.setScale(shipScale);
       this.boost.setPosition(
          this.playerShip.x,
          this.playerShip.y - this.playerShip.displayHeight
       );
+
+      //* Redimensionne et repositionne la hitbox
+      this.createShipHitbox(shipScale);
    }
 
    fireRockets() {
       const rocketOffset = this.playerShip.displayWidth * 0.25;
 
-      // Crée la première roquette à gauche du vaisseau
+      //* Crée la première roquette à gauche du vaisseau
       let rocketLeft = this.add.sprite(
          this.playerShip.x - rocketOffset,
          this.playerShip.y - this.playerShip.displayHeight / 2,
@@ -242,7 +282,7 @@ export default class GameScene extends Phaser.Scene {
       );
       rocketLeft.play("fireRockets");
 
-      // Crée la deuxième roquette à droite du vaisseau
+      //* Crée la deuxième roquette à droite du vaisseau
       let rocketRight = this.add.sprite(
          this.playerShip.x + rocketOffset,
          this.playerShip.y - this.playerShip.displayHeight / 2,
@@ -253,19 +293,19 @@ export default class GameScene extends Phaser.Scene {
       this.rockets.push(rocketLeft);
       this.rockets.push(rocketRight);
 
-      // Ajoute ici la logique pour déplacer les roquettes ou gérer les collisions
+      // TODO Ajouter logique pour déplacer les roquettes ou gérer les collisions
    }
 
    update(_, delta) {
-      const shipSpeed = 5;
+      const shipSpeed = 3;
       const shipWidthOffset = this.playerShip.displayWidth / 2;
-      // Utilise la hauteur entière du vaisseau pour la limite supérieure
+      //* Utilise la hauteur entière du vaisseau pour la limite supérieure
       const shipTopOffset = this.playerShip.displayHeight;
-      // Définit une limite inférieure pour garder de l'espace entre scene et ship
+      //* Définit une limite inférieure pour garder de l'espace entre scene et ship
       const shipBottomLimit =
          this.scale.height - this.playerShip.displayHeight / 4;
 
-      // Mouvement horizontal avec limite
+      //* Mouvement horizontal avec limite
       if (this.WASD.left.isDown) {
          this.playerShip.x = Phaser.Math.Clamp(
             this.playerShip.x - shipSpeed,
@@ -280,7 +320,7 @@ export default class GameScene extends Phaser.Scene {
          );
       }
 
-      // Mouvement vertical avec limite
+      //* Mouvement vertical avec limite
       if (this.WASD.up.isDown) {
          this.playerShip.y = Phaser.Math.Clamp(
             this.playerShip.y - shipSpeed,
@@ -300,16 +340,15 @@ export default class GameScene extends Phaser.Scene {
          );
       }
 
-      // Alignement du boost
+      //* Alignement du boost
       this.boost.x = this.playerShip.x;
       this.boost.y = this.playerShip.y - this.playerShip.displayHeight / 2;
 
-      // Update position hitbox pour suivre ship
-      this.shipHitbox.setPosition(
-         this.playerShip.x,
+      //* Update position hitbox pour suivre ship
+      this.shipHitbox.x = this.playerShip.x;
+      this.shipHitbox.y =
          this.playerShip.y -
-            (this.playerShip.displayHeight * this.playerShip.scale) / 1.1
-      );
+         this.playerShip.displayHeight * this.hitboxVerticalOffset;
 
       for (let i = this.rockets.length - 1; i >= 0; i--) {
          const rocket = this.rockets[i];
@@ -322,12 +361,12 @@ export default class GameScene extends Phaser.Scene {
          }
       }
 
-      // Met à jour le compteur de temps depuis le dernier tir
+      //* Met à jour le compteur de temps depuis le dernier tir
       if (this.timeSinceLastRocket < this.rocketFireRate) {
          this.timeSinceLastRocket += delta;
       }
 
-      // Si le drapeau isFiring est vrai, et que le temps depuis le dernier tir est supérieur à une certaine intervalle, tire une roquette
+      //* Si le drapeau isFiring est vrai, et que le temps depuis le dernier tir est supérieur à une certaine intervalle, tire une roquette
       if (this.isFiring && this.timeSinceLastRocket >= this.rocketFireRate) {
          this.fireRockets();
          this.timeSinceLastRocket = 0;
