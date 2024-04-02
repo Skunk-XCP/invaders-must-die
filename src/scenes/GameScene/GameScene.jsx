@@ -3,6 +3,8 @@ import Phaser from "phaser";
 export default class GameScene extends Phaser.Scene {
    constructor() {
       super("game_scene");
+      this.gameWidth = window.innerWidth * 0.7;
+      this.gameHeight = window.innerHeight;
       this.shipProportion = 0.1; // 10% de la hauteur de l'écran
       this.isFiring = false;
       this.timeSinceLastRocket = 0; // Temps écoulé depuis le dernier tir
@@ -18,14 +20,17 @@ export default class GameScene extends Phaser.Scene {
       this.load.image("background", "assets/stars/Stars.png");
       this.load.on("filecomplete", function (key, type, data) {
          if (key === "background") {
-            console.log("Background image loaded");
          }
       });
       this.load.image("playerShip", "/assets/sprites/playerShips/1B.png");
       this.load.image("boost", "/assets/sprites/effects/boost/boost.png");
-      this.load.image("nebula1", "/assets/nebula/Nebula1.png");
-      this.load.image("nebula2", "/assets/nebula/Nebula2.png");
-      this.load.image("nebula3", "/assets/nebula/Nebula3.png");
+      this.load.image("nebula1", "/assets/sprites/nebula/Nebula1.png");
+      this.load.image("nebula2", "/assets/sprites/nebula/Nebula2.png");
+      this.load.image("nebula3", "/assets/sprites/nebula/Nebula3.png");
+      this.load.image(
+         "frigate1",
+         "/assets/sprites/enemyShips/frigate/frigate1.png"
+      );
       this.load.image(
          "playerRocket0",
          "/assets/sprites/effects/playerRocket/rocket_1_0000.png"
@@ -92,12 +97,6 @@ export default class GameScene extends Phaser.Scene {
       );
    }
 
-   init(data) {
-      //* Ici, tu peux initialiser les propriétés de ta scène avec les données passées
-      this.gameWidth = data.width;
-      this.gameHeight = data.height;
-   }
-
    create() {
       //* Création du fond de la scène de jeu (70% de la largeur de l'écran)
       this.add.rectangle(
@@ -106,23 +105,6 @@ export default class GameScene extends Phaser.Scene {
          this.gameWidth,
          this.gameHeight,
          0x000000
-      );
-
-      //* Création des bandes latérales (15% de la largeur de l'écran de chaque côté)
-      const sidebarWidth = window.innerWidth * 0.15;
-      this.add.rectangle(
-         sidebarWidth / 2,
-         this.gameHeight / 2,
-         sidebarWidth,
-         this.gameHeight,
-         0x333333
-      );
-      this.add.rectangle(
-         this.gameWidth + sidebarWidth / 2,
-         this.gameHeight / 2,
-         sidebarWidth,
-         this.gameHeight,
-         0x333333
       );
 
       //* Défini la proportion du vaisseau par rapport à la hauteur de l'écran
@@ -233,6 +215,8 @@ export default class GameScene extends Phaser.Scene {
             //TODO Ajouter logique pour le tir secondaire
          }
       });
+
+      this.spawnEnemy();
    }
 
    createShipHitbox(shipScale) {
@@ -302,6 +286,62 @@ export default class GameScene extends Phaser.Scene {
       this.rockets.push(rocketRight);
 
       // TODO Ajouter logique pour déplacer les roquettes ou gérer les collisions
+   }
+
+   spawnNebula() {
+      // Sélection aléatoire d'une nébula
+      let randomNebulaKey = Phaser.Math.RND.pick(this.nebulas);
+      let nebula = this.add.image(
+         Phaser.Math.Between(0, this.scale.width), // Position horizontale aléatoire
+         -300, // Démarre au-dessus de l'écran pour une entrée progressive
+         randomNebulaKey
+      );
+
+      // Ajustement de la profondeur pour que la nébula soit derrière le background transparent
+      nebula.setDepth(-1);
+
+      // Affectation d'une rotation aléatoire à la nébula
+      let randomRotation = Phaser.Math.Between(-180, 180);
+      nebula.setRotation(Phaser.Math.DegToRad(randomRotation));
+
+      // Ajoute un effet mirror horizontal aléatoire
+      if (Phaser.Math.RND.pick([true, false])) {
+         nebula.setFlipX(true);
+      }
+
+      // Ajustement de la taille de la nébula
+      let scale = Phaser.Math.Between(0.5, 1);
+      nebula.setScale(scale);
+
+      // Définition de la vitesse de la nébula
+      let speed = Phaser.Math.Between(100, 200);
+      this.tweens.add({
+         targets: nebula,
+         y: this.scale.height + nebula.height * scale + 100, // Déplace verticalement jusqu'à ce qu'elle soit complètement sortie de l'écran par le bas
+         ease: "Linear",
+         duration: speed * 500, // Augmente la durée pour un mouvement plus lent et naturel
+         repeat: 0,
+         onComplete: () => {
+            nebula.destroy(); // Destruction de la nébula une fois qu'elle a traversé l'écran
+         },
+      });
+   }
+
+   spawnEnemy() {
+      // Position initiale de l'ennemi
+      const enemyX = Phaser.Math.Between(0, this.gameWidth);
+      const enemyY = -50; // Commence légèrement hors de l'écran en haut pour une apparition progressive
+
+      // Création de l'ennemi
+      this.enemy = this.physics.add.image(enemyX, enemyY, "frigate1");
+      this.enemy.setOrigin(0.5, 0.5);
+
+      // Modifie la taille de l'ennemi
+      this.enemy.setScale(0.3);
+
+      // Définit une vitesse de déplacement pour l'ennemi
+      const speed = 100;
+      this.enemy.setVelocityY(speed);
    }
 
    update(time, delta) {
@@ -389,44 +429,14 @@ export default class GameScene extends Phaser.Scene {
          this.lastNebulaTime = time;
          this.nebulaInterval = Phaser.Math.Between(100000, 250000); // Prochain intervalle
       }
-   }
 
-   spawnNebula() {
-      // Sélection aléatoire d'une nébula
-      let randomNebulaKey = Phaser.Math.RND.pick(this.nebulas);
-      let nebula = this.add.image(
-         Phaser.Math.Between(0, this.scale.width), // Position horizontale aléatoire
-         -300, // Démarre au-dessus de l'écran pour une entrée progressive
-         randomNebulaKey
-      );
-
-      // Ajustement de la profondeur pour que la nébula soit derrière le background transparent
-      nebula.setDepth(-1);
-
-      // Affectation d'une rotation aléatoire à la nébula
-      let randomRotation = Phaser.Math.Between(-180, 180);
-      nebula.setRotation(Phaser.Math.DegToRad(randomRotation));
-
-      // Ajoute un effet mirror horizontal aléatoire
-      if (Phaser.Math.RND.pick([true, false])) {
-         nebula.setFlipX(true);
+      // Vérifie si l'ennemi a dépassé la limite inférieure de l'écran pour le détruire
+      if (
+         this.enemy &&
+         this.enemy.y > this.scale.height + this.enemy.displayHeight / 2
+      ) {
+         this.enemy.destroy();
+         this.enemy = null;
       }
-
-      // Ajustement de la taille de la nébula
-      let scale = Phaser.Math.Between(0.5, 1);
-      nebula.setScale(scale);
-
-      // Définition de la vitesse de la nébula
-      let speed = Phaser.Math.Between(100, 200);
-      this.tweens.add({
-         targets: nebula,
-         y: this.scale.height + nebula.height * scale + 100, // Déplace verticalement jusqu'à ce qu'elle soit complètement sortie de l'écran par le bas
-         ease: "Linear",
-         duration: speed * 500, // Augmente la durée pour un mouvement plus lent et naturel
-         repeat: 0,
-         onComplete: () => {
-            nebula.destroy(); // Destruction de la nébula une fois qu'elle a traversé l'écran
-         },
-      });
    }
 }
