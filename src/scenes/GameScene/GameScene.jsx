@@ -27,6 +27,10 @@ export default class GameScene extends Phaser.Scene {
          "playerBoost",
          "/assets/sprites/effects/boost/boost_1.png"
       );
+      this.load.image(
+         "enemyBoost",
+         "/assets/sprites/effects/boost/boost_4.png"
+      );
       this.load.image("nebula1", "/assets/sprites/nebula/Nebula1.png");
       this.load.image("nebula2", "/assets/sprites/nebula/Nebula2.png");
       this.load.image("nebula3", "/assets/sprites/nebula/Nebula3.png");
@@ -100,7 +104,7 @@ export default class GameScene extends Phaser.Scene {
       );
    }
 
-   create() {
+   create(startX, startY) {
       //* Défini la proportion du vaisseau par rapport à la hauteur de l'écran
       const shipProportion = 0.1;
       this.rockets = [];
@@ -210,7 +214,13 @@ export default class GameScene extends Phaser.Scene {
          }
       });
 
-      this.spawnEnemy();
+      this.spawnFrigateEnemy();
+      // Création de l'ennemi quelque part dans ta méthode `create` ou une méthode similaire
+      this.enemy = this.physics.add
+         .sprite(startX, startY, "frigate1")
+         .setScale(0.3);
+      // Après la création de l'ennemi, configure sa hitbox
+      this.createFrigateHitbox(this.enemy);
    }
 
    createShipHitbox(shipScale) {
@@ -322,15 +332,85 @@ export default class GameScene extends Phaser.Scene {
    }
 
    // Fonction pour faire apparaître un ennemi frigate avec un pattern de déplacement prédéfini moveEnemy()
-   spawnEnemy() {
+   spawnFrigateEnemy() {
       this.enemy = this.physics.add
          .sprite(this.scale.width / 2, -50, "frigate1")
          .setScale(0.3);
+
+      // Crée les boosts pour l'ennemi
+      this.createFrigateBoosts(this.enemy);
+
+      // Les rends invisibles dès le départ
+      this.enemy.leftBoost.setVisible(true);
+      this.enemy.rightBoost.setVisible(true);
+
+      // Masque les propulseurs après un certain temps
+      this.time.delayedCall(1500, () => {
+         if (this.enemy && this.enemy.leftBoost && this.enemy.rightBoost) {
+            this.enemy.leftBoost.setVisible(false);
+            this.enemy.rightBoost.setVisible(false);
+         }
+      });
 
       // Obtient une chorégraphie aléatoire et l'applique
       const choreography = this.getRandomChoreography(this.enemy);
       choreography.forEach((tween) => {
          this.tweens.add(tween);
+      });
+   }
+
+   createFrigateHitbox(enemy) {
+      // Définit la taille de la hitbox basée sur l'échelle de dimension de l'ennemi
+      let hitboxWidth = enemy.displayWidth * 0.3;
+      let hitboxHeight = enemy.displayHeight * 0.3;
+
+      // Crée et positionne la hitbox
+      let enemyHitbox = this.add.rectangle(
+         enemy.x,
+         enemy.y,
+         hitboxWidth,
+         hitboxHeight,
+         0xff0000, // Couleur rouge pour la visibilité
+         0.5 // Demi-transparence
+      );
+
+      // Fait de la hitbox un objet physique
+      this.physics.add.existing(enemyHitbox);
+      enemyHitbox.body.setAllowGravity(false); // Si la gravité est active dans ton jeu
+      enemyHitbox.setScrollFactor(0);
+
+      // Pour suivre l'ennemi
+      enemyHitbox.update = function () {
+         this.x = enemy.x;
+         this.y = enemy.y;
+      };
+   }
+
+   createFrigateBoosts(enemy) {
+      const boostOffsetX = enemy.displayWidth * 0.25;
+      const boostOffsetY = enemy.displayHeight * 0.5;
+      const boostScale = 0.2;
+
+      // Création et positionnement des propulseurs
+      enemy.leftBoost = this.add
+         .sprite(enemy.x - boostOffsetX, enemy.y + boostOffsetY, "enemyBoost")
+         .setOrigin(-0.4, 3)
+         .setVisible(true)
+         .setScale(boostScale);
+
+      enemy.rightBoost = this.add
+         .sprite(enemy.x + boostOffsetX, enemy.y + boostOffsetY, "enemyBoost")
+         .setOrigin(1.4, 3)
+         .setVisible(true)
+         .setScale(boostScale);
+
+      // Ajout d'un effet de clignotement aux propulseurs
+      this.tweens.add({
+         targets: [enemy.leftBoost, enemy.rightBoost], // Cible les deux propulseurs
+         alpha: { from: 0.4, to: 1 },
+         duration: 100,
+         yoyo: true,
+         repeat: -1,
       });
    }
 
@@ -368,38 +448,27 @@ export default class GameScene extends Phaser.Scene {
       ];
    }
 
-   // Fonction pour générer un mouvement circulaire
    getChoreography2(enemy) {
-      const radius = 100; // rayon du cercle
-      const centerX = this.gameWidth / 2; // centre du cercle en X
-      const centerY = this.gameHeight / 4; // centre du cercle en Y
+      // L'ennemi entre dans la scène depuis le côté gauche et s'arrête au milieu
+      const stopX = this.scale.width / 2; // Point d'arrêt au milieu de l'écran en largeur
+      const stopY = this.scale.height / 2; // Point d'arrêt au milieu de l'écran en hauteur
 
       return [
          {
             targets: enemy,
-            x: { value: `+=${radius}`, duration: 2000 },
-            y: { value: `+=${radius}`, duration: 2000 },
+            x: stopX,
+            y: stopY,
             ease: "Sine.easeInOut",
             duration: 2000,
-            repeat: -1, // répète indéfiniment
-            yoyo: true, // aller-retour
-            onRepeat: (tween, target) => {
-               // Change la direction du mouvement pour créer un cercle
-               const angle = Phaser.Math.Angle.Between(
-                  centerX,
-                  centerY,
-                  target.x,
-                  target.y
-               );
-               const newAngle = angle + Math.PI / 2; // ajoute 90 degrés pour chaque itération
-               tween.data[0].end += radius * Math.cos(newAngle);
-               tween.data[1].end += radius * Math.sin(newAngle);
+            onComplete: () => {
+               // Ici, tu peux définir ce que tu veux faire une fois que l'ennemi s'est arrêté
+               // Par exemple, arrêter tout mouvement ou déclencher une action spécifique
             },
          },
       ];
    }
 
-   update(time, delta) {
+   update(time, delta, boostOffsetX, boostOffsetY) {
       const shipSpeed = 4;
       const shipWidthOffset = this.playerShip.displayWidth / 2;
       //* Utilise la hauteur entière du vaisseau pour la limite supérieure
@@ -492,6 +561,18 @@ export default class GameScene extends Phaser.Scene {
       ) {
          this.enemy.destroy();
          this.enemy = null;
+      }
+
+      // Met à jour la position des propulseurs pour suivre l'ennemi
+      if (this.enemy && this.enemy.leftBoost && this.enemy.rightBoost) {
+         const boostOffsetX = this.enemy.displayWidth * 0.25;
+         const boostOffsetY = this.enemy.displayHeight * 0.5;
+
+         this.enemy.leftBoost.x = this.enemy.x - boostOffsetX;
+         this.enemy.leftBoost.y = this.enemy.y + boostOffsetY;
+
+         this.enemy.rightBoost.x = this.enemy.x + boostOffsetX;
+         this.enemy.rightBoost.y = this.enemy.y + boostOffsetY;
       }
    }
 }
