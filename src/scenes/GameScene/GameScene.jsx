@@ -23,7 +23,10 @@ export default class GameScene extends Phaser.Scene {
          }
       });
       this.load.image("playerShip", "/assets/sprites/playerShips/1B.png");
-      this.load.image("boost", "/assets/sprites/effects/boost/boost.png");
+      this.load.image(
+         "playerBoost",
+         "/assets/sprites/effects/boost/boost_1.png"
+      );
       this.load.image("nebula1", "/assets/sprites/nebula/Nebula1.png");
       this.load.image("nebula2", "/assets/sprites/nebula/Nebula2.png");
       this.load.image("nebula3", "/assets/sprites/nebula/Nebula3.png");
@@ -98,15 +101,6 @@ export default class GameScene extends Phaser.Scene {
    }
 
    create() {
-      //* Création du fond de la scène de jeu (70% de la largeur de l'écran)
-      this.add.rectangle(
-         this.gameWidth / 2,
-         this.gameHeight / 2,
-         this.gameWidth,
-         this.gameHeight,
-         0x000000
-      );
-
       //* Défini la proportion du vaisseau par rapport à la hauteur de l'écran
       const shipProportion = 0.1;
       this.rockets = [];
@@ -134,12 +128,12 @@ export default class GameScene extends Phaser.Scene {
       //* Position du vaisseau en bas au milieu de l'écran
       this.playerShip.y = this.scale.height - this.playerShip.displayHeight / 2;
 
-      //* Création du boost
+      //* Création du boost joueur
       this.boost = this.add
          .sprite(
             this.playerShip.x,
             this.playerShip.y - this.playerShip.displayHeight,
-            "boost"
+            "playerBoost"
          )
          .setOrigin(0.5, 0)
          .setVisible(false)
@@ -327,21 +321,82 @@ export default class GameScene extends Phaser.Scene {
       });
    }
 
+   // Fonction pour faire apparaître un ennemi frigate avec un pattern de déplacement prédéfini moveEnemy()
    spawnEnemy() {
-      // Position initiale de l'ennemi
-      const enemyX = Phaser.Math.Between(0, this.gameWidth);
-      const enemyY = -50; // Commence légèrement hors de l'écran en haut pour une apparition progressive
+      this.enemy = this.physics.add
+         .sprite(this.scale.width / 2, -50, "frigate1")
+         .setScale(0.3);
 
-      // Création de l'ennemi
-      this.enemy = this.physics.add.image(enemyX, enemyY, "frigate1");
-      this.enemy.setOrigin(0.5, 0.5);
+      // Obtient une chorégraphie aléatoire et l'applique
+      const choreography = this.getRandomChoreography(this.enemy);
+      choreography.forEach((tween) => {
+         this.tweens.add(tween);
+      });
+   }
 
-      // Modifie la taille de l'ennemi
-      this.enemy.setScale(0.3);
+   // Fonction pour générer une chorégraphie aléatoire
+   getRandomChoreography(enemy) {
+      const choreographies = [
+         this.getChoreography1(enemy),
+         this.getChoreography2(enemy),
+         // Ajoute autant de chorégraphies que tu veux ici
+      ];
 
-      // Définit une vitesse de déplacement pour l'ennemi
-      const speed = 100;
-      this.enemy.setVelocityY(speed);
+      // Choisis une chorégraphie aléatoire
+      return choreographies[Phaser.Math.Between(0, choreographies.length - 1)];
+   }
+
+   // Fonction pour définir une chorégraphie
+   getChoreography1(enemy) {
+      // Définis un ensemble de tweens pour cette chorégraphie
+      return [
+         // Tween 1: va vers la droite
+         {
+            targets: enemy,
+            x: this.scale.width * 0.75,
+            ease: "Sine.easeInOut",
+            duration: 2000,
+         },
+         // Tween 2: descend
+         {
+            targets: enemy,
+            y: this.scale.height * 0.5,
+            ease: "Sine.easeInOut",
+            duration: 2000,
+         },
+         // Ajoute plus de tweens pour compléter la chorégraphie
+      ];
+   }
+
+   // Fonction pour générer un mouvement circulaire
+   getChoreography2(enemy) {
+      const radius = 100; // rayon du cercle
+      const centerX = this.gameWidth / 2; // centre du cercle en X
+      const centerY = this.gameHeight / 4; // centre du cercle en Y
+
+      return [
+         {
+            targets: enemy,
+            x: { value: `+=${radius}`, duration: 2000 },
+            y: { value: `+=${radius}`, duration: 2000 },
+            ease: "Sine.easeInOut",
+            duration: 2000,
+            repeat: -1, // répète indéfiniment
+            yoyo: true, // aller-retour
+            onRepeat: (tween, target) => {
+               // Change la direction du mouvement pour créer un cercle
+               const angle = Phaser.Math.Angle.Between(
+                  centerX,
+                  centerY,
+                  target.x,
+                  target.y
+               );
+               const newAngle = angle + Math.PI / 2; // ajoute 90 degrés pour chaque itération
+               tween.data[0].end += radius * Math.cos(newAngle);
+               tween.data[1].end += radius * Math.sin(newAngle);
+            },
+         },
+      ];
    }
 
    update(time, delta) {
@@ -388,7 +443,7 @@ export default class GameScene extends Phaser.Scene {
          );
       }
 
-      //* Alignement du boost
+      //* Alignement du boost joueur
       this.boost.x = this.playerShip.x;
       this.boost.y = this.playerShip.y - this.playerShip.displayHeight / 2;
 
