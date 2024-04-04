@@ -111,6 +111,15 @@ export default class GameScene extends Phaser.Scene {
    }
 
    create(startX, startY) {
+      // Active le rendu debug et configure les paramètres globaux de debug
+      // this.physics.world.drawDebug = true; // Active le rendu debug
+      // this.physics.world.debugConfig = {
+      //    bodyColor: 0x00ffff, // Couleur des contours des hitboxes
+      //    showBody: true,
+      //    showVelocity: true,
+      // };
+      // this.physics.world.createDebugGraphic();
+
       this.createBackground();
       this.createPlayer();
       this.setupInput();
@@ -140,7 +149,7 @@ export default class GameScene extends Phaser.Scene {
          (this.scale.height * shipProportion) / this.playerShip.height;
       this.playerShip.setScale(shipScale);
 
-      this.configureShipHitbox(); // Configure la hitbox directement
+      this.configurePlayerHitbox(); // Configure la hitbox directement
 
       this.playerShip.y = this.scale.height - this.playerShip.displayHeight / 2;
 
@@ -191,7 +200,7 @@ export default class GameScene extends Phaser.Scene {
       });
    }
 
-   configureShipHitbox(shipScale) {
+   configurePlayerHitbox(shipScale) {
       //* Définie taille hitbox basée sur l'échelle de dimension du ship
       const hitboxWidth = this.playerShip.displayWidth * 0.3;
       const hitboxHeight = this.playerShip.displayHeight * 0.3;
@@ -300,6 +309,9 @@ export default class GameScene extends Phaser.Scene {
       // Crée les boosts pour l'ennemi
       this.createFrigateBoosts(this.enemy);
 
+      // Crée la hitbox pour l'ennemi
+      this.createFrigateHitbox(this.enemy);
+
       // Les rends invisibles dès le départ
       this.enemy.leftBoost.setVisible(true);
       this.enemy.rightBoost.setVisible(true);
@@ -320,11 +332,10 @@ export default class GameScene extends Phaser.Scene {
    }
 
    createFrigateHitbox(enemy) {
-      // Définit la taille de la hitbox basée sur l'échelle de dimension de l'ennemi
-      const hitboxWidth = enemy.displayWidth * 0.3;
-      const hitboxHeight = enemy.displayHeight * 0.3;
-      const offsetX = (enemy.displayWidth - hitboxWidth) / 2;
-      const offsetY = (enemy.displayHeight - hitboxHeight) / 2;
+      const hitboxWidth = enemy.displayWidth * 0.6;
+      const hitboxHeight = enemy.displayHeight * 0.6;
+      const offsetX = 50;
+      const offsetY = 70;
 
       // Configure la hitbox du sprite ennemi
       enemy.body.setSize(hitboxWidth, hitboxHeight);
