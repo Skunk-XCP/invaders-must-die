@@ -104,11 +104,20 @@ export default class GameScene extends Phaser.Scene {
       );
    }
 
-   create(startX, startY) {
-      //* Défini la proportion du vaisseau par rapport à la hauteur de l'écran
-      const shipProportion = 0.1;
-      this.rockets = [];
+   init(data) {
+      // Initialiser ici les propriétés qui peuvent dépendre des paramètres passés à la scène
+      this.startX = data.startX;
+      this.startY = data.startY;
+   }
 
+   create(startX, startY) {
+      this.createBackground();
+      this.createPlayer();
+      this.setupInput();
+      this.spawnFrigateEnemy();
+   }
+
+   createBackground() {
       //* Affichage du fond adapté à la taille de l'écran
       this.background = this.add.tileSprite(
          this.scale.width / 2,
@@ -117,19 +126,22 @@ export default class GameScene extends Phaser.Scene {
          this.scale.height,
          "background"
       );
+   }
 
-      //* Création du vaisseau et ajustement de sa taille
+   createPlayer() {
+      //* Défini la proportion du vaisseau par rapport à la hauteur de l'écran
+      const shipProportion = 0.1;
+      this.rockets = [];
+
       this.playerShip = this.physics.add
          .sprite(this.scale.width / 2, this.scale.height, "playerShip")
          .setOrigin(0.5, 1);
-      let shipScale =
+      const shipScale =
          (this.scale.height * shipProportion) / this.playerShip.height;
       this.playerShip.setScale(shipScale);
 
-      //* Ajout hitbox au centre du vaisseau
-      this.createShipHitbox(shipScale);
+      this.configureShipHitbox(); // Configure la hitbox directement
 
-      //* Position du vaisseau en bas au milieu de l'écran
       this.playerShip.y = this.scale.height - this.playerShip.displayHeight / 2;
 
       //* Création du boost joueur
@@ -177,69 +189,17 @@ export default class GameScene extends Phaser.Scene {
          frameRate: 10, // Nombre d'images par seconde, à ajuster selon la rapidité de l'animation souhaitée
          repeat: 0, // 0 signifie que l'animation ne se répétera pas; elle ne sera jouée qu'une seule fois par appel
       });
-
-      //* Configuration du clavier
-      this.WASD = this.input.keyboard.addKeys({
-         up: Phaser.Input.Keyboard.KeyCodes.W,
-         down: Phaser.Input.Keyboard.KeyCodes.S,
-         left: Phaser.Input.Keyboard.KeyCodes.A,
-         right: Phaser.Input.Keyboard.KeyCodes.D,
-      });
-
-      //* Configuration du clic de souris pour tirer
-      this.input.on("pointerdown", (pointer) => {
-         if (pointer.leftButtonDown()) {
-            this.fireRockets();
-         }
-      });
-
-      //* Configuration du clic de souris pour commencer à tirer
-      this.input.on("pointerdown", (pointer) => {
-         if (pointer.leftButtonDown()) {
-            this.isFiring = true;
-         }
-      });
-
-      //* Lorsque le bouton de la souris est relâché, arrête de tirer
-      this.input.on("pointerup", () => {
-         this.isFiring = false;
-      });
-
-      //* Annule l'ouverture du menu contextuel du clic droit
-      this.input.on("pointerdown", function (pointer) {
-         if (pointer.rightButtonDown()) {
-            // Empêche le menu contextuel de s'ouvrir
-            pointer.event.preventDefault();
-            //TODO Ajouter logique pour le tir secondaire
-         }
-      });
-
-      this.spawnFrigateEnemy();
-      // Création de l'ennemi quelque part dans ta méthode `create` ou une méthode similaire
-      this.enemy = this.physics.add
-         .sprite(startX, startY, "frigate1")
-         .setScale(0.3);
-      // Après la création de l'ennemi, configure sa hitbox
-      this.createFrigateHitbox(this.enemy);
    }
 
-   createShipHitbox(shipScale) {
+   configureShipHitbox(shipScale) {
       //* Définie taille hitbox basée sur l'échelle de dimension du ship
-      let hitboxWidth = this.playerShip.displayWidth * 0.3;
-      let hitboxHeight = this.playerShip.displayHeight * 0.3;
+      const hitboxWidth = this.playerShip.displayWidth * 0.3;
+      const hitboxHeight = this.playerShip.displayHeight * 0.3;
+      const offsetX = (this.playerShip.width - hitboxWidth) / 2;
+      const offsetY = (this.playerShip.height - hitboxHeight) / 2;
 
-      //* Crée et positionne hitbox
-      this.shipHitbox = this.add.rectangle(
-         this.playerShip.x,
-         this.playerShip.y,
-         hitboxWidth,
-         hitboxHeight,
-         0xff0000,
-         0.5 // TODO retirer couleur hitbox = 0
-      );
-
-      //* Faire de la hitbox un objet physique
-      this.shipHitbox.setScrollFactor(0);
+      this.playerShip.body.setSize(hitboxWidth, hitboxHeight);
+      this.playerShip.body.setOffset(offsetX, offsetY);
    }
 
    resize(gameSize) {
@@ -361,29 +321,14 @@ export default class GameScene extends Phaser.Scene {
 
    createFrigateHitbox(enemy) {
       // Définit la taille de la hitbox basée sur l'échelle de dimension de l'ennemi
-      let hitboxWidth = enemy.displayWidth * 0.3;
-      let hitboxHeight = enemy.displayHeight * 0.3;
+      const hitboxWidth = enemy.displayWidth * 0.3;
+      const hitboxHeight = enemy.displayHeight * 0.3;
+      const offsetX = (enemy.displayWidth - hitboxWidth) / 2;
+      const offsetY = (enemy.displayHeight - hitboxHeight) / 2;
 
-      // Crée et positionne la hitbox
-      let enemyHitbox = this.add.rectangle(
-         enemy.x,
-         enemy.y,
-         hitboxWidth,
-         hitboxHeight,
-         0xff0000, // Couleur rouge pour la visibilité
-         0.5 // Demi-transparence
-      );
-
-      // Fait de la hitbox un objet physique
-      this.physics.add.existing(enemyHitbox);
-      enemyHitbox.body.setAllowGravity(false); // Si la gravité est active dans ton jeu
-      enemyHitbox.setScrollFactor(0);
-
-      // Pour suivre l'ennemi
-      enemyHitbox.update = function () {
-         this.x = enemy.x;
-         this.y = enemy.y;
-      };
+      // Configure la hitbox du sprite ennemi
+      enemy.body.setSize(hitboxWidth, hitboxHeight);
+      enemy.body.setOffset(offsetX, offsetY);
    }
 
    createFrigateBoosts(enemy) {
@@ -468,16 +413,64 @@ export default class GameScene extends Phaser.Scene {
       ];
    }
 
-   update(time, delta, boostOffsetX, boostOffsetY) {
+   setupInput() {
+      //* Configuration du clavier
+      this.WASD = this.input.keyboard.addKeys({
+         up: Phaser.Input.Keyboard.KeyCodes.W,
+         down: Phaser.Input.Keyboard.KeyCodes.S,
+         left: Phaser.Input.Keyboard.KeyCodes.A,
+         right: Phaser.Input.Keyboard.KeyCodes.D,
+      });
+
+      //* Configuration du clic de souris pour tirer
+      this.input.on("pointerdown", (pointer) => {
+         if (pointer.leftButtonDown()) {
+            this.fireRockets();
+         }
+      });
+
+      //* Configuration du clic de souris pour commencer à tirer
+      this.input.on("pointerdown", (pointer) => {
+         if (pointer.leftButtonDown()) {
+            this.isFiring = true;
+         }
+      });
+
+      //* Lorsque le bouton de la souris est relâché, arrête de tirer
+      this.input.on("pointerup", () => {
+         this.isFiring = false;
+      });
+
+      //* Annule l'ouverture du menu contextuel du clic droit
+      this.input.on("pointerdown", function (pointer) {
+         if (pointer.rightButtonDown()) {
+            // Empêche le menu contextuel de s'ouvrir
+            pointer.event.preventDefault();
+            //TODO Ajouter logique pour le tir secondaire
+         }
+      });
+   }
+
+   update(time, delta) {
+      this.handlePlayerMovement();
+      this.handleRocketFiring(delta);
+      this.updateRocketPositions();
+      this.handleBackgroundScroll();
+      this.handleNebulaSpawn(time);
+      this.checkEnemyBounds();
+      this.updateBoostPosition();
+   }
+
+   handlePlayerMovement() {
+      if (!this.playerShip || !this.playerShip.body) return;
+
       const shipSpeed = 4;
       const shipWidthOffset = this.playerShip.displayWidth / 2;
-      //* Utilise la hauteur entière du vaisseau pour la limite supérieure
       const shipTopOffset = this.playerShip.displayHeight;
-      //* Définit une limite inférieure pour garder de l'espace entre scene et ship
       const shipBottomLimit =
          this.scale.height - this.playerShip.displayHeight / 4;
 
-      //* Mouvement horizontal avec limite
+      // Horizontal movement
       if (this.WASD.left.isDown) {
          this.playerShip.x = Phaser.Math.Clamp(
             this.playerShip.x - shipSpeed,
@@ -492,69 +485,59 @@ export default class GameScene extends Phaser.Scene {
          );
       }
 
-      //* Mouvement vertical avec limite
+      // Vertical movement
       if (this.WASD.up.isDown) {
          this.playerShip.y = Phaser.Math.Clamp(
             this.playerShip.y - shipSpeed,
             shipTopOffset,
-            shipBottomLimit // Utilise la limite inférieure définie
+            shipBottomLimit
          );
-         this.boost.setVisible(true);
-      } else {
-         this.boost.setVisible(false);
-      }
-
-      if (this.WASD.down.isDown) {
+         this.boost?.setVisible(true);
+      } else if (this.WASD.down.isDown) {
          this.playerShip.y = Phaser.Math.Clamp(
             this.playerShip.y + shipSpeed,
             shipTopOffset,
             shipBottomLimit
          );
+      } else {
+         this.boost?.setVisible(false);
       }
+   }
 
-      //* Alignement du boost joueur
-      this.boost.x = this.playerShip.x;
-      this.boost.y = this.playerShip.y - this.playerShip.displayHeight / 2;
+   handleRocketFiring(delta) {
+      if (!this.isFiring || !this.playerShip) return;
 
-      //* Update position hitbox pour suivre ship
-      this.shipHitbox.x = this.playerShip.x;
-      this.shipHitbox.y =
-         this.playerShip.y -
-         this.playerShip.displayHeight * this.hitboxVerticalOffset;
-
-      for (let i = this.rockets.length - 1; i >= 0; i--) {
-         const rocket = this.rockets[i];
-         rocket.y -= 10; // Déplace chaque roquette vers le haut
-
-         // Vérifie si la roquette est sortie de l'écran
-         if (rocket.y < 0) {
-            rocket.destroy(); // Détruit la roquette
-            this.rockets.splice(i, 1); // Retire la roquette du tableau
-         }
-      }
-
-      //* Met à jour le compteur de temps depuis le dernier tir
-      if (this.timeSinceLastRocket < this.rocketFireRate) {
-         this.timeSinceLastRocket += delta;
-      }
-
-      //* Si le drapeau isFiring est vrai, et que le temps depuis le dernier tir est supérieur à une certaine intervalle, tire une roquette
-      if (this.isFiring && this.timeSinceLastRocket >= this.rocketFireRate) {
+      if (this.timeSinceLastRocket >= this.rocketFireRate) {
          this.fireRockets();
          this.timeSinceLastRocket = 0;
+      } else {
+         this.timeSinceLastRocket += delta;
       }
+   }
 
-      // Déplace le background vers le haut
+   updateRocketPositions() {
+      this.rockets.forEach((rocket, index) => {
+         rocket.y -= 10;
+         if (rocket.y < 0) {
+            rocket.destroy();
+            this.rockets.splice(index, 1);
+         }
+      });
+   }
+
+   handleBackgroundScroll() {
       this.background.tilePositionY -= 0.3;
+   }
 
-      // Gestion de l'apparition des nébulas
+   handleNebulaSpawn(time) {
       if (time - this.lastNebulaTime > this.nebulaInterval) {
          this.spawnNebula();
          this.lastNebulaTime = time;
-         this.nebulaInterval = Phaser.Math.Between(100000, 250000); // Prochain intervalle
+         this.nebulaInterval = Phaser.Math.Between(100000, 250000);
       }
+   }
 
-      // Vérifie si l'ennemi a dépassé la limite inférieure de l'écran pour le détruire
+   checkEnemyBounds() {
       if (
          this.enemy &&
          this.enemy.y > this.scale.height + this.enemy.displayHeight / 2
@@ -562,17 +545,12 @@ export default class GameScene extends Phaser.Scene {
          this.enemy.destroy();
          this.enemy = null;
       }
+   }
 
-      // Met à jour la position des propulseurs pour suivre l'ennemi
-      if (this.enemy && this.enemy.leftBoost && this.enemy.rightBoost) {
-         const boostOffsetX = this.enemy.displayWidth * 0.25;
-         const boostOffsetY = this.enemy.displayHeight * 0.5;
+   updateBoostPosition() {
+      if (!this.boost || !this.playerShip) return;
 
-         this.enemy.leftBoost.x = this.enemy.x - boostOffsetX;
-         this.enemy.leftBoost.y = this.enemy.y + boostOffsetY;
-
-         this.enemy.rightBoost.x = this.enemy.x + boostOffsetX;
-         this.enemy.rightBoost.y = this.enemy.y + boostOffsetY;
-      }
+      this.boost.x = this.playerShip.x;
+      this.boost.y = this.playerShip.y - this.playerShip.displayHeight / 2;
    }
 }
