@@ -6,13 +6,14 @@ export default class GameScene extends Phaser.Scene {
       this.gameWidth = window.innerWidth * 0.7;
       this.gameHeight = window.innerHeight;
       this.shipProportion = 0.1; // 10% de la hauteur de l'écran
+      this.frigateProportion = 0.1;
       this.isFiring = false;
       this.timeSinceLastRocket = 0; // Temps écoulé depuis le dernier tir
       this.rocketFireRate = 200; // Taux de tir en millisecondes
       this.hitboxVerticalOffset = 0.5;
       this.nebulas = ["nebula1", "nebula2", "nebula3"];
       this.lastNebulaTime = 0;
-      this.nebulaInterval = Phaser.Math.Between(100000, 250000);
+      this.nebulaInterval = Phaser.Math.Between(70000, 200000);
    }
 
    preload() {
@@ -219,10 +220,11 @@ export default class GameScene extends Phaser.Scene {
    resize(gameSize) {
       const { width, height } = gameSize;
 
-      //* Adapte la taille du fond à la nouvelle taille de l'écran
+      // Adapte la taille du fond à la nouvelle taille de l'écran
       this.background.setDisplaySize(width, height);
 
-      //* Calcule la nouvelle échelle du vaisseau basée sur la proportion définie
+      //* Adapte dimensions et position du vaisseau joueur
+      // Calcule la nouvelle échelle du vaisseau basée sur la proportion définie
       let shipScale = (height * this.shipProportion) / this.playerShip.height;
       this.playerShip.setScale(shipScale);
       this.playerShip.setPosition(
@@ -230,40 +232,59 @@ export default class GameScene extends Phaser.Scene {
          height - this.playerShip.displayHeight / 2
       );
 
-      //* Adapter la taille et la position du boost
+      // Adapter la taille et la position du boost
       this.boost.setScale(shipScale);
       this.boost.setPosition(
          this.playerShip.x,
          this.playerShip.y - this.playerShip.displayHeight
       );
 
-      //* Redimensionne et repositionne la hitbox
+      // Redimensionne et repositionne la hitbox
       this.createShipHitbox(shipScale);
+
+      //* Adapte dimensions et position du vaisseau redFrigateEnemy
+      let redFrigateScale =
+         (height * this.shipProportion) / this.playerShip.height;
+      this.playerShip.setScale(redFrigateScale);
+      this.playerShip.setPosition(
+         width / 2,
+         height - this.playerShip.displayHeight / 2
+      );
+
+      this.createredFrigateHitbox(redFrigateScale);
    }
 
    fireRockets() {
       const rocketOffset = this.playerShip.displayWidth * 0.25;
+      const newWidth = 12; // La nouvelle largeur de la hitbox, ajuste selon la taille de ton sprite
+      const newHeight = 30; // La nouvelle hauteur de la hitbox
+      const offsetX = 0; // Décalage de la hitbox sur l'axe X pour l'aligner avec le sprite
+      const offsetY = -15; // Décalage de la hitbox sur l'axe Y
 
       //* Crée la première roquette à gauche du vaisseau
-      let rocketLeft = this.add.sprite(
+      let rocketLeft = this.physics.add.sprite(
          this.playerShip.x - rocketOffset,
          this.playerShip.y - this.playerShip.displayHeight / 2,
          "rocket1"
       );
       rocketLeft.play("fireRockets");
 
+      rocketLeft.setSize(newWidth, newHeight, false);
+      rocketLeft.setOffset(offsetX, offsetY);
+
       //* Crée la deuxième roquette à droite du vaisseau
-      let rocketRight = this.add.sprite(
+      let rocketRight = this.physics.add.sprite(
          this.playerShip.x + rocketOffset,
          this.playerShip.y - this.playerShip.displayHeight / 2,
          "rocket1"
       );
       rocketRight.play("fireRockets");
 
+      rocketRight.setSize(newWidth, newHeight, false); // Ajuste la taille de la hitbox
+      rocketRight.setOffset(offsetX, offsetY); // Centre la hitbox si nécessaire
+
       this.rockets.push(rocketLeft);
       this.rockets.push(rocketRight);
-
-      // TODO Ajouter logique pour déplacer les roquettes ou gérer les collisions
    }
 
    spawnNebula() {
@@ -307,9 +328,26 @@ export default class GameScene extends Phaser.Scene {
 
    // Fonction pour faire apparaître un ennemi frigate avec un pattern de déplacement prédéfini moveEnemy()
    spawnRedFrigateEnemy() {
+      const frigateProportion = 0.1;
+
+      // Crée l'ennemi frigate hors de l'écran par le haut
       this.redFrigateEnemy = this.physics.add
          .sprite(this.scale.width / 2, -50, "redFrigate")
-         .setScale(0.3);
+         .setOrigin(0.5, 0);
+      const redFrigateScale =
+         (this.scale.height * frigateProportion) / this.redFrigateEnemy.height;
+      this.redFrigateEnemy.setScale(redFrigateScale);
+
+      // Initialise les propriétés originales après la création et l'application de la première échelle
+      this.redFrigateEnemy.originalWidth = this.redFrigateEnemy.width;
+      this.redFrigateEnemy.originalHeight = this.redFrigateEnemy.height;
+
+      // Redimensionnement après avoir défini les dimensions originales
+      const initialWidth = 80; // La largeur désirée
+      const newScale =
+         (initialWidth / this.redFrigateEnemy.originalWidth) *
+         this.redFrigateEnemy.scaleX;
+      this.redFrigateEnemy.setScale(newScale);
 
       // Crée les boosts pour l'ennemi
       this.createFrigateBoosts(this.redFrigateEnemy);
@@ -325,7 +363,7 @@ export default class GameScene extends Phaser.Scene {
       // Crée la hitbox pour l'ennemi
       this.createFrigateHitbox(this.redFrigateEnemy);
 
-      // Les rends invisibles dès le départ
+      // Rend les boosts invisibles dès le départ
       this.redFrigateEnemy.leftBoost.setVisible(true);
       this.redFrigateEnemy.rightBoost.setVisible(true);
 
@@ -341,22 +379,22 @@ export default class GameScene extends Phaser.Scene {
          }
       });
 
-      // Obtient une chorégraphie aléatoire et l'applique
+      // Applique une chorégraphie aléatoire
       const choreography = this.getRandomChoreography(this.redFrigateEnemy);
       choreography.forEach((tween) => {
          this.tweens.add(tween);
       });
    }
 
-   createFrigateHitbox(redFrigateEnemy) {
-      const hitboxWidth = redFrigateEnemy.displayWidth * 0.6;
-      const hitboxHeight = redFrigateEnemy.displayHeight * 0.6;
-      const offsetX = 50;
-      const offsetY = 70;
+   createFrigateHitbox(redFrigateScale) {
+      //* Définie la taille de la hitbox en fonction de l'échelle de dimension du frigate
+      const hitboxWidth = this.redFrigateEnemy.displayWidth * 0.9;
+      const hitboxHeight = this.redFrigateEnemy.displayHeight * 0.4;
+      const offsetX = (this.redFrigateEnemy.width - hitboxWidth) / 2;
+      const offsetY = (this.redFrigateEnemy.height - hitboxHeight) / 2;
 
-      // Configure la hitbox du sprite ennemi
-      redFrigateEnemy.body.setSize(hitboxWidth, hitboxHeight);
-      redFrigateEnemy.body.setOffset(offsetX, offsetY);
+      this.redFrigateEnemy.body.setSize(hitboxWidth, hitboxHeight);
+      this.redFrigateEnemy.body.setOffset(offsetX, offsetY);
    }
 
    redFrigateShot() {
@@ -367,7 +405,7 @@ export default class GameScene extends Phaser.Scene {
       // Crée la première roquette à gauche du vaisseau ennemi avec physique
       let bulletLeft = this.physics.add.sprite(
          this.redFrigateEnemy.x - 7,
-         this.redFrigateEnemy.y + 20,
+         this.redFrigateEnemy.y + 60,
          "redFrigateBullet"
       );
       bulletLeft.setVelocityY(bulletSpeed);
@@ -376,7 +414,7 @@ export default class GameScene extends Phaser.Scene {
       // Crée la deuxième roquette à droite du vaisseau ennemi avec physique
       let bulletRight = this.physics.add.sprite(
          this.redFrigateEnemy.x + 7,
-         this.redFrigateEnemy.y + 20,
+         this.redFrigateEnemy.y + 60,
          "redFrigateBullet"
       );
       bulletRight.setVelocityY(bulletSpeed);
@@ -527,7 +565,7 @@ export default class GameScene extends Phaser.Scene {
    handlePlayerMovement() {
       if (!this.playerShip || !this.playerShip.body) return;
 
-      const shipSpeed = 4;
+      const shipSpeed = 5;
       const shipWidthOffset = this.playerShip.displayWidth / 2;
       const shipTopOffset = this.playerShip.displayHeight;
       const shipBottomLimit =
@@ -596,7 +634,7 @@ export default class GameScene extends Phaser.Scene {
       if (time - this.lastNebulaTime > this.nebulaInterval) {
          this.spawnNebula();
          this.lastNebulaTime = time;
-         this.nebulaInterval = Phaser.Math.Between(100000, 250000);
+         this.nebulaInterval = Phaser.Math.Between(70000, 200000);
       }
    }
 
