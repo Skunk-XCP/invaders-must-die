@@ -32,6 +32,11 @@ export default class GameScene extends Phaser.Scene {
          "redFrigateEnemyBoost",
          "/assets/sprites/effects/boost/boost_4.png"
       );
+      this.load.atlas(
+         "explosion_01",
+         "/assets/sprites/explosions/explosion_01/explosion_01.png",
+         "/assets/sprites/explosions/explosion_01/explosion_01.json"
+      );
       this.load.image("nebula1", "/assets/sprites/nebula/Nebula1.png");
       this.load.image("nebula2", "/assets/sprites/nebula/Nebula2.png");
       this.load.image("nebula3", "/assets/sprites/nebula/Nebula3.png");
@@ -116,19 +121,14 @@ export default class GameScene extends Phaser.Scene {
    }
 
    create(startX, startY) {
-      // Active le rendu debug et configure les paramètres globaux de debug
-      // this.physics.world.drawDebug = true; // Active le rendu debug
-      // this.physics.world.debugConfig = {
-      //    bodyColor: 0x00ffff, // Couleur des contours des hitboxes
-      //    showBody: true,
-      //    showVelocity: true,
-      // };
-      // this.physics.world.createDebugGraphic();
-
       this.createBackground();
       this.createPlayer();
+      this.rocketGroup();
       this.setupInput();
+      this.enemyGroup();
       this.spawnRedFrigateEnemy();
+      this.setupColliders();
+      this.explosion_01();
       this.bullets = [];
    }
 
@@ -283,8 +283,53 @@ export default class GameScene extends Phaser.Scene {
       rocketRight.setSize(newWidth, newHeight, false); // Ajuste la taille de la hitbox
       rocketRight.setOffset(offsetX, offsetY); // Centre la hitbox si nécessaire
 
-      this.rockets.push(rocketLeft);
-      this.rockets.push(rocketRight);
+      this.rockets.add(rocketRight);
+      this.rockets.add(rocketLeft);
+   }
+
+   setupColliders() {
+      this.physics.add.collider(
+         this.rockets,
+         this.enemies,
+         this.hitEnemy,
+         null,
+         this
+      );
+   }
+
+   rocketGroup() {
+      // Crée un groupe de roquettes
+      this.rockets = this.physics.add.group({
+         classType: Phaser.GameObjects.Sprite,
+         runChildUpdate: true,
+      });
+   }
+
+   hitEnemy(rocket, enemy) {
+      let offsetX = 0;
+      let offsetY = 0;
+      // Positionne l'animation d'explosion où l'ennemi a été touché
+      let explosion = this.add
+         .sprite(enemy.x + offsetX, enemy.y + offsetY, "explosion_01")
+         .play("explosion_01");
+
+      // Détruit le sprite de l'explosion une fois l'animation terminée
+      explosion.on("animationcomplete", () => explosion.destroy());
+
+      rocket.destroy();
+
+      if (enemy.shootTimer) {
+         enemy.shootTimer.remove(false); // Arrête le timer sans appeler le callback final
+      }
+      enemy.destroy();
+   }
+
+   enemyGroup() {
+      // Crée un groupe d'ennemis
+      this.enemies = this.physics.add.group({
+         classType: Phaser.Physics.Arcade.Sprite,
+         runChildUpdate: true,
+      });
    }
 
    spawnNebula() {
@@ -326,6 +371,40 @@ export default class GameScene extends Phaser.Scene {
       });
    }
 
+   explosion_01() {
+      this.anims.create({
+         key: "explosion_01",
+         frames: [
+            { key: "explosion_01", frame: "expl_01_0000" },
+            { key: "explosion_01", frame: "expl_01_0001" },
+            { key: "explosion_01", frame: "expl_01_0002" },
+            { key: "explosion_01", frame: "expl_01_0003" },
+            { key: "explosion_01", frame: "expl_01_0004" },
+            { key: "explosion_01", frame: "expl_01_0005" },
+            { key: "explosion_01", frame: "expl_01_0006" },
+            { key: "explosion_01", frame: "expl_01_0007" },
+            { key: "explosion_01", frame: "expl_01_0008" },
+            { key: "explosion_01", frame: "expl_01_0009" },
+            { key: "explosion_01", frame: "expl_01_0010" },
+            { key: "explosion_01", frame: "expl_01_0011" },
+            { key: "explosion_01", frame: "expl_01_0012" },
+            { key: "explosion_01", frame: "expl_01_0013" },
+            { key: "explosion_01", frame: "expl_01_0014" },
+            { key: "explosion_01", frame: "expl_01_0015" },
+            { key: "explosion_01", frame: "expl_01_0016" },
+            { key: "explosion_01", frame: "expl_01_0017" },
+            { key: "explosion_01", frame: "expl_01_0018" },
+            { key: "explosion_01", frame: "expl_01_0019" },
+            { key: "explosion_01", frame: "expl_01_0020" },
+            { key: "explosion_01", frame: "expl_01_0021" },
+            { key: "explosion_01", frame: "expl_01_0022" },
+            { key: "explosion_01", frame: "expl_01_0023" },
+         ],
+         frameRate: 20,
+         repeat: 0,
+      });
+   }
+
    // Fonction pour faire apparaître un ennemi frigate avec un pattern de déplacement prédéfini moveEnemy()
    spawnRedFrigateEnemy() {
       const frigateProportion = 0.1;
@@ -348,6 +427,8 @@ export default class GameScene extends Phaser.Scene {
          (initialWidth / this.redFrigateEnemy.originalWidth) *
          this.redFrigateEnemy.scaleX;
       this.redFrigateEnemy.setScale(newScale);
+
+      this.enemies.add(this.redFrigateEnemy);
 
       // Crée les boosts pour l'ennemi
       this.createFrigateBoosts(this.redFrigateEnemy);
@@ -388,7 +469,7 @@ export default class GameScene extends Phaser.Scene {
 
    createFrigateHitbox(redFrigateScale) {
       //* Définie la taille de la hitbox en fonction de l'échelle de dimension du frigate
-      const hitboxWidth = this.redFrigateEnemy.displayWidth * 0.9;
+      const hitboxWidth = this.redFrigateEnemy.displayWidth * 1.8;
       const hitboxHeight = this.redFrigateEnemy.displayHeight * 0.4;
       const offsetX = (this.redFrigateEnemy.width - hitboxWidth) / 2;
       const offsetY = (this.redFrigateEnemy.height - hitboxHeight) / 2;
@@ -507,7 +588,7 @@ export default class GameScene extends Phaser.Scene {
             ease: "Sine.easeInOut",
             duration: 2000,
             onComplete: () => {
-               // Ici, tu peux définir ce que tu veux faire une fois que l'ennemi s'est arrêté
+               // Ici, définir ce que peut faire l'ennemi une fois qu'il s'est arrêté
                // Par exemple, arrêter tout mouvement ou déclencher une action spécifique
             },
          },
@@ -617,11 +698,11 @@ export default class GameScene extends Phaser.Scene {
    }
 
    updateRocketPositions() {
-      this.rockets.forEach((rocket, index) => {
+      // Utilise getChildren() pour accéder aux sprites dans le groupe
+      this.rockets.getChildren().forEach((rocket, index) => {
          rocket.y -= 10;
          if (rocket.y < 0) {
-            rocket.destroy();
-            this.rockets.splice(index, 1);
+            this.rockets.remove(rocket, true, true); // Cela va détruire le sprite et le retirer du groupe
          }
       });
    }
