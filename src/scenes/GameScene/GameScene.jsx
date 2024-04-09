@@ -33,6 +33,11 @@ export default class GameScene extends Phaser.Scene {
          "/assets/sprites/effects/boost/boost_4.png"
       );
       this.load.atlas(
+         "playerExplosion",
+         "/assets/sprites/explosions/playerExplosion/playerExplosion.png",
+         "/assets/sprites/explosions/playerExplosion/playerExplosion.json"
+      );
+      this.load.atlas(
          "explosion_01",
          "/assets/sprites/explosions/explosion_01/explosion_01.png",
          "/assets/sprites/explosions/explosion_01/explosion_01.json"
@@ -124,12 +129,51 @@ export default class GameScene extends Phaser.Scene {
       this.createBackground();
       this.createPlayer();
       this.rocketGroup();
+      this.enemyProjectiles = this.physics.add.group();
       this.setupInput();
       this.enemyGroup();
       this.spawnRedFrigateEnemy();
       this.setupColliders();
       this.explosion_01();
+      this.playerExplosion();
       this.bullets = [];
+   }
+
+   resize(gameSize) {
+      const { width, height } = gameSize;
+
+      // Adapte la taille du fond à la nouvelle taille de l'écran
+      this.background.setDisplaySize(width, height);
+
+      //* Adapte dimensions et position du vaisseau joueur
+      // Calcule la nouvelle échelle du vaisseau basée sur la proportion définie
+      let shipScale = (height * this.shipProportion) / this.playerShip.height;
+      this.playerShip.setScale(shipScale);
+      this.playerShip.setPosition(
+         width / 2,
+         height - this.playerShip.displayHeight / 2
+      );
+
+      // Adapter la taille et la position du boost
+      this.boost.setScale(shipScale);
+      this.boost.setPosition(
+         this.playerShip.x,
+         this.playerShip.y - this.playerShip.displayHeight
+      );
+
+      // Redimensionne et repositionne la hitbox
+      this.createShipHitbox(shipScale);
+
+      //* Adapte dimensions et position du vaisseau redFrigateEnemy
+      let redFrigateScale =
+         (height * this.shipProportion) / this.playerShip.height;
+      this.playerShip.setScale(redFrigateScale);
+      this.playerShip.setPosition(
+         width / 2,
+         height - this.playerShip.displayHeight / 2
+      );
+
+      this.createredFrigateHitbox(redFrigateScale);
    }
 
    createBackground() {
@@ -217,48 +261,27 @@ export default class GameScene extends Phaser.Scene {
       this.playerShip.body.setOffset(offsetX, offsetY);
    }
 
-   resize(gameSize) {
-      const { width, height } = gameSize;
+   playerHit(player, projectile) {
+      projectile.destroy(); // Détruire le projectile
 
-      // Adapte la taille du fond à la nouvelle taille de l'écran
-      this.background.setDisplaySize(width, height);
+      // Jouer l'animation d'explosion
+      let explosion = this.add
+         .sprite(player.x, player.y, "playerExplosion")
+         .play("playerExplosion");
+      explosion.on("animationcomplete", () => explosion.destroy()); // Détruire l'animation après sa lecture
 
-      //* Adapte dimensions et position du vaisseau joueur
-      // Calcule la nouvelle échelle du vaisseau basée sur la proportion définie
-      let shipScale = (height * this.shipProportion) / this.playerShip.height;
-      this.playerShip.setScale(shipScale);
-      this.playerShip.setPosition(
-         width / 2,
-         height - this.playerShip.displayHeight / 2
-      );
+      player.destroy();
 
-      // Adapter la taille et la position du boost
-      this.boost.setScale(shipScale);
-      this.boost.setPosition(
-         this.playerShip.x,
-         this.playerShip.y - this.playerShip.displayHeight
-      );
-
-      // Redimensionne et repositionne la hitbox
-      this.createShipHitbox(shipScale);
-
-      //* Adapte dimensions et position du vaisseau redFrigateEnemy
-      let redFrigateScale =
-         (height * this.shipProportion) / this.playerShip.height;
-      this.playerShip.setScale(redFrigateScale);
-      this.playerShip.setPosition(
-         width / 2,
-         height - this.playerShip.displayHeight / 2
-      );
-
-      this.createredFrigateHitbox(redFrigateScale);
+      //TODO Ajouter logique pour la fin de jeu
+      // Étape 4 : Traitement de fin de jeu ou de réapparition
+      // this.handlePlayerDeath();
    }
 
    fireRockets() {
       const rocketOffset = this.playerShip.displayWidth * 0.25;
-      const newWidth = 12; // La nouvelle largeur de la hitbox, ajuste selon la taille de ton sprite
+      const newWidth = 16; // La nouvelle largeur de la hitbox, ajuste selon la taille de ton sprite
       const newHeight = 30; // La nouvelle hauteur de la hitbox
-      const offsetX = 0; // Décalage de la hitbox sur l'axe X pour l'aligner avec le sprite
+      const offsetX = -2; // Décalage de la hitbox sur l'axe X pour l'aligner avec le sprite
       const offsetY = -15; // Décalage de la hitbox sur l'axe Y
 
       //* Crée la première roquette à gauche du vaisseau
@@ -288,10 +311,20 @@ export default class GameScene extends Phaser.Scene {
    }
 
    setupColliders() {
+      // Collision entre les roquettes du joueur et les ennemis
       this.physics.add.collider(
          this.rockets,
          this.enemies,
          this.hitEnemy,
+         null,
+         this
+      );
+
+      // Collision entre le vaisseau du joueur et les projectiles ennemis
+      this.physics.add.overlap(
+         this.playerShip,
+         this.enemyProjectiles,
+         this.playerHit,
          null,
          this
       );
@@ -332,6 +365,55 @@ export default class GameScene extends Phaser.Scene {
       });
    }
 
+   playerExplosion() {
+      this.anims.create({
+         key: "playerExplosion",
+         frames: this.anims.generateFrameNames("playerExplosion", {
+            start: 0,
+            end: 31,
+            prefix: "expl_10_",
+            suffix: "",
+            zeroPad: 4,
+         }),
+         frameRate: 20,
+         repeat: 0,
+      });
+   }
+
+   explosion_01() {
+      this.anims.create({
+         key: "explosion_01",
+         frames: [
+            { key: "explosion_01", frame: "expl_01_0000" },
+            { key: "explosion_01", frame: "expl_01_0001" },
+            { key: "explosion_01", frame: "expl_01_0002" },
+            { key: "explosion_01", frame: "expl_01_0003" },
+            { key: "explosion_01", frame: "expl_01_0004" },
+            { key: "explosion_01", frame: "expl_01_0005" },
+            { key: "explosion_01", frame: "expl_01_0006" },
+            { key: "explosion_01", frame: "expl_01_0007" },
+            { key: "explosion_01", frame: "expl_01_0008" },
+            { key: "explosion_01", frame: "expl_01_0009" },
+            { key: "explosion_01", frame: "expl_01_0010" },
+            { key: "explosion_01", frame: "expl_01_0011" },
+            { key: "explosion_01", frame: "expl_01_0012" },
+            { key: "explosion_01", frame: "expl_01_0013" },
+            { key: "explosion_01", frame: "expl_01_0014" },
+            { key: "explosion_01", frame: "expl_01_0015" },
+            { key: "explosion_01", frame: "expl_01_0016" },
+            { key: "explosion_01", frame: "expl_01_0017" },
+            { key: "explosion_01", frame: "expl_01_0018" },
+            { key: "explosion_01", frame: "expl_01_0019" },
+            { key: "explosion_01", frame: "expl_01_0020" },
+            { key: "explosion_01", frame: "expl_01_0021" },
+            { key: "explosion_01", frame: "expl_01_0022" },
+            { key: "explosion_01", frame: "expl_01_0023" },
+         ],
+         frameRate: 20,
+         repeat: 0,
+      });
+   }
+
    spawnNebula() {
       // Sélection aléatoire d'une nébula
       let randomNebulaKey = Phaser.Math.RND.pick(this.nebulas);
@@ -368,40 +450,6 @@ export default class GameScene extends Phaser.Scene {
          onComplete: () => {
             nebula.destroy(); // Destruction de la nébula une fois qu'elle a traversé l'écran
          },
-      });
-   }
-
-   explosion_01() {
-      this.anims.create({
-         key: "explosion_01",
-         frames: [
-            { key: "explosion_01", frame: "expl_01_0000" },
-            { key: "explosion_01", frame: "expl_01_0001" },
-            { key: "explosion_01", frame: "expl_01_0002" },
-            { key: "explosion_01", frame: "expl_01_0003" },
-            { key: "explosion_01", frame: "expl_01_0004" },
-            { key: "explosion_01", frame: "expl_01_0005" },
-            { key: "explosion_01", frame: "expl_01_0006" },
-            { key: "explosion_01", frame: "expl_01_0007" },
-            { key: "explosion_01", frame: "expl_01_0008" },
-            { key: "explosion_01", frame: "expl_01_0009" },
-            { key: "explosion_01", frame: "expl_01_0010" },
-            { key: "explosion_01", frame: "expl_01_0011" },
-            { key: "explosion_01", frame: "expl_01_0012" },
-            { key: "explosion_01", frame: "expl_01_0013" },
-            { key: "explosion_01", frame: "expl_01_0014" },
-            { key: "explosion_01", frame: "expl_01_0015" },
-            { key: "explosion_01", frame: "expl_01_0016" },
-            { key: "explosion_01", frame: "expl_01_0017" },
-            { key: "explosion_01", frame: "expl_01_0018" },
-            { key: "explosion_01", frame: "expl_01_0019" },
-            { key: "explosion_01", frame: "expl_01_0020" },
-            { key: "explosion_01", frame: "expl_01_0021" },
-            { key: "explosion_01", frame: "expl_01_0022" },
-            { key: "explosion_01", frame: "expl_01_0023" },
-         ],
-         frameRate: 20,
-         repeat: 0,
       });
    }
 
@@ -479,12 +527,14 @@ export default class GameScene extends Phaser.Scene {
    }
 
    redFrigateShot() {
-      // vitesse de deplacement du tir
+      // s'assurer que this.redFrigateEnemy existe
+      if (!this.redFrigateEnemy || !this.redFrigateEnemy.active) return;
+
       const bulletSpeed = 200;
       const bulletScale = 0.5;
 
-      // Crée la première roquette à gauche du vaisseau ennemi avec physique
-      let bulletLeft = this.physics.add.sprite(
+      // Création et ajout des projectiles dans le groupe avec les propriétés physiques
+      let bulletLeft = this.enemyProjectiles.create(
          this.redFrigateEnemy.x - 7,
          this.redFrigateEnemy.y + 60,
          "redFrigateBullet"
@@ -492,17 +542,20 @@ export default class GameScene extends Phaser.Scene {
       bulletLeft.setVelocityY(bulletSpeed);
       bulletLeft.setScale(bulletScale);
 
-      // Crée la deuxième roquette à droite du vaisseau ennemi avec physique
-      let bulletRight = this.physics.add.sprite(
+      let bulletRight = this.enemyProjectiles.create(
          this.redFrigateEnemy.x + 7,
          this.redFrigateEnemy.y + 60,
          "redFrigateBullet"
       );
       bulletRight.setVelocityY(bulletSpeed);
       bulletRight.setScale(bulletScale);
+   }
 
-      // Ajoute les balles à un tableau si tu as besoin de les gérer plus tard
-      this.bullets.push(bulletLeft, bulletRight);
+   enemyProjectiles() {
+      this.enemyProjectiles = this.physics.add.group({
+         defaultKey: "redFrigateBullet",
+         maxSize: 10, // ou un autre nombre qui convient à votre jeu
+      });
    }
 
    createFrigateBoosts(redFrigateEnemy) {
