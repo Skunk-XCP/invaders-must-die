@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import GameScene from "../../scenes/GameScene/GameScene";
+import MenuScene from "../../scenes/MenuScene/MenuScene";
 
 const gameWidth = window.innerWidth * 0.7;
 const gameHeight = window.innerHeight;
@@ -15,7 +16,7 @@ const phaserConfig = {
          debug: false,
       },
    },
-   scene: [GameScene],
+   scene: [MenuScene, GameScene],
    scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,

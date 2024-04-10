@@ -2,7 +2,7 @@ import Phaser from "phaser";
 
 export default class GameScene extends Phaser.Scene {
    constructor() {
-      super("game_scene");
+      super("GameScene");
       this.gameWidth = window.innerWidth * 0.7;
       this.gameHeight = window.innerHeight;
       this.shipProportion = 0.1; // 10% de la hauteur de l'écran
@@ -229,7 +229,7 @@ export default class GameScene extends Phaser.Scene {
    createPlayerRocketAnimation() {
       // Création de l'animation du tir de rocket à partir d'un atlas
       this.anims.create({
-         key: "playerRockets",
+         key: "fireRockets",
          frames: this.anims.generateFrameNames("playerRockets", {
             start: 0,
             end: 15,
