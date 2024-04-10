@@ -118,6 +118,59 @@ export default class GameScene extends Phaser.Scene {
       this.createredFrigateHitbox(redFrigateScale);
    }
 
+   createRestartButton() {
+      // Définir les dimensions et le style du bouton
+      const buttonWidth = 200;
+      const buttonHeight = 50;
+      const buttonX = this.cameras.main.centerX - buttonWidth / 2;
+      const buttonY = this.cameras.main.centerY - buttonHeight / 2;
+
+      // Créer le fond du bouton
+      const buttonBackground = this.add
+         .graphics()
+         .fillStyle(0x000000, 0.5) // Couleur et transparence du fond
+         .setInteractive(
+            new Phaser.Geom.Rectangle(
+               buttonX,
+               buttonY,
+               buttonWidth,
+               buttonHeight
+            ),
+            Phaser.Geom.Rectangle.Contains
+         )
+         .fillRect(buttonX, buttonY, buttonWidth, buttonHeight)
+         .lineStyle(2, 0xffffff) // Couleur et épaisseur du contour
+         .strokeRect(buttonX, buttonY, buttonWidth, buttonHeight);
+
+      // Ajouter le texte du bouton
+      const buttonText = this.add
+         .text(
+            this.cameras.main.centerX,
+            this.cameras.main.centerY,
+            "Restart",
+            {
+               fontSize: "20px",
+               color: "#FFFFFF",
+            }
+         )
+         .setOrigin(0.5);
+
+      // Ajouter un événement de clic au fond du bouton pour redémarrer la scène
+      buttonBackground.on("pointerdown", () => {
+         this.scene.restart();
+      });
+
+      // Changer le curseur en pointeur lors du survol du bouton
+      buttonBackground.on("pointerover", () => {
+         this.input.setDefaultCursor("pointer");
+      });
+
+      // Revenir au curseur par défaut lorsqu'on quitte le bouton
+      buttonBackground.on("pointerout", () => {
+         this.input.setDefaultCursor("default");
+      });
+   }
+
    createBackground() {
       //* Affichage du fond adapté à la taille de l'écran
       this.background = this.add.tileSprite(
@@ -143,7 +196,7 @@ export default class GameScene extends Phaser.Scene {
       this.playerShip.y = this.scale.height - this.playerShip.displayHeight / 2;
       this.configurePlayerHitbox(); // Configure la hitbox directement
 
-      // Séparation de la logique de création du boost dans une méthode dédiée
+      // Création du boost joueur
       this.createPlayerBoost(shipScale);
 
       // Création du tir de rocket player
@@ -202,22 +255,17 @@ export default class GameScene extends Phaser.Scene {
    playerHit(player, projectile) {
       projectile.destroy(); // Détruire le projectile
 
-      // Si le boost est actif, le cacher
-      if (this.boost && this.boost.visible) {
-         this.boost.setVisible(false); // Ou this.boost.destroy(); si tu préfères le détruire
-      }
-
-      // Jouer l'animation d'explosion
+      // Jouer l'animation d'explosion et cacher ou détruire le boost
       let explosion = this.add
          .sprite(player.x, player.y, "playerExplosion")
          .play("playerExplosion");
-      explosion.on("animationcomplete", () => explosion.destroy()); // Détruire l'animation après sa lecture
+      explosion.on("animationcomplete", () => {
+         explosion.destroy();
+         this.createRestartButton(); // Créer le bouton de redémarrage après l'animation d'explosion
+      });
 
-      player.destroy();
-
-      //TODO Ajouter logique pour la fin de jeu
-      // Étape 4 : Traitement de fin de jeu ou de réapparition
-      // this.handlePlayerDeath();
+      player.destroy(); // Détruire le joueur
+      this.boost?.setVisible(false); // Cacher le boost si actif
    }
 
    fireRockets() {
@@ -271,6 +319,36 @@ export default class GameScene extends Phaser.Scene {
          null,
          this
       );
+
+      // Collision entre le vaisseau du joueur et les ennemis
+      this.physics.add.overlap(
+         this.playerShip,
+         this.enemies,
+         this.playerAndEnemyCollide,
+         null,
+         this
+      );
+   }
+
+   playerAndEnemyCollide(player, enemy) {
+      // Jouer l'animation d'explosion pour le joueur
+      let playerExplosion = this.add
+         .sprite(player.x, player.y, "playerExplosion")
+         .play("playerExplosion");
+      playerExplosion.on("animationcomplete", () => {
+         playerExplosion.destroy();
+         this.createRestartButton(); // Ajoute cette ligne ici
+      });
+
+      // Jouer l'animation d'explosion pour l'ennemi
+      let enemyExplosion = this.add
+         .sprite(enemy.x, enemy.y, "explosion_01")
+         .play("explosion_01");
+      enemyExplosion.on("animationcomplete", () => enemyExplosion.destroy());
+
+      // Détruire le joueur et l'ennemi
+      player.destroy();
+      enemy.destroy();
    }
 
    rocketGroup() {
