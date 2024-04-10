@@ -143,7 +143,7 @@ export default class GameScene extends Phaser.Scene {
          .strokeRect(buttonX, buttonY, buttonWidth, buttonHeight);
 
       // Ajouter le texte du bouton
-      const buttonText = this.add
+      this.add
          .text(
             this.cameras.main.centerX,
             this.cameras.main.centerY,
@@ -530,8 +530,8 @@ export default class GameScene extends Phaser.Scene {
       });
 
       // Applique une chorégraphie aléatoire
-      const choreography = this.getRandomChoreography(this.redFrigateEnemy);
-      choreography.forEach((tween) => {
+      const choregraphy = this.getRandomChoregraphy(this.redFrigateEnemy);
+      choregraphy.forEach((tween) => {
          this.tweens.add(tween);
       });
    }
@@ -616,19 +616,19 @@ export default class GameScene extends Phaser.Scene {
    }
 
    // Fonction pour générer une chorégraphie aléatoire
-   getRandomChoreography(redFrigateEnemy) {
-      const choreographies = [
-         this.getChoreography1(redFrigateEnemy),
-         this.getChoreography2(redFrigateEnemy),
+   getRandomChoregraphy(redFrigateEnemy) {
+      const choregraphies = [
+         this.getChoregraphy1(redFrigateEnemy),
+         this.getChoregraphy2(redFrigateEnemy),
          // Ajoute autant de chorégraphies que tu veux ici
       ];
 
       // Choisis une chorégraphie aléatoire
-      return choreographies[Phaser.Math.Between(0, choreographies.length - 1)];
+      return choregraphies[Phaser.Math.Between(0, choregraphies.length - 1)];
    }
 
    // Fonction pour définir une chorégraphie
-   getChoreography1(redFrigateEnemy) {
+   getChoregraphy1(redFrigateEnemy) {
       // Définis un ensemble de tweens pour cette chorégraphie
       return [
          // Tween 1: va vers la droite
@@ -649,7 +649,7 @@ export default class GameScene extends Phaser.Scene {
       ];
    }
 
-   getChoreography2(redFrigateEnemy) {
+   getChoregraphy2(redFrigateEnemy) {
       // L'ennemi entre dans la scène depuis le côté gauche et s'arrête au milieu
       const stopX = this.scale.width / 2; // Point d'arrêt au milieu de l'écran en largeur
       const stopY = this.scale.height / 2; // Point d'arrêt au milieu de l'écran en hauteur
