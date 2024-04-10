@@ -33,6 +33,11 @@ export default class GameScene extends Phaser.Scene {
          "/assets/sprites/effects/boost/boost_4.png"
       );
       this.load.atlas(
+         "playerRockets",
+         "/assets/sprites/effects/playerRockets/playerRockets.png",
+         "/assets/sprites/effects/playerRockets/playerRockets.json"
+      );
+      this.load.atlas(
          "playerExplosion",
          "/assets/sprites/explosions/playerExplosion/playerExplosion.png",
          "/assets/sprites/explosions/playerExplosion/playerExplosion.json"
@@ -49,70 +54,7 @@ export default class GameScene extends Phaser.Scene {
          "redFrigate",
          "/assets/sprites/enemyShips/frigate/frigate1.png"
       );
-      this.load.image(
-         "playerRocket0",
-         "/assets/sprites/effects/playerRocket/rocket_1_0000.png"
-      );
-      this.load.image(
-         "playerRocket1",
-         "/assets/sprites/effects/playerRocket/rocket_1_0001.png"
-      );
-      this.load.image(
-         "playerRocket2",
-         "/assets/sprites/effects/playerRocket/rocket_1_0002.png"
-      );
-      this.load.image(
-         "playerRocket3",
-         "/assets/sprites/effects/playerRocket/rocket_1_0003.png"
-      );
-      this.load.image(
-         "playerRocket4",
-         "/assets/sprites/effects/playerRocket/rocket_1_0004.png"
-      );
-      this.load.image(
-         "playerRocket5",
-         "/assets/sprites/effects/playerRocket/rocket_1_0005.png"
-      );
-      this.load.image(
-         "playerRocket6",
-         "/assets/sprites/effects/playerRocket/rocket_1_0006.png"
-      );
-      this.load.image(
-         "playerRocket7",
-         "/assets/sprites/effects/playerRocket/rocket_1_0007.png"
-      );
-      this.load.image(
-         "playerRocket8",
-         "/assets/sprites/effects/playerRocket/rocket_1_0008.png"
-      );
-      this.load.image(
-         "playerRocket9",
-         "/assets/sprites/effects/playerRocket/rocket_1_0009.png"
-      );
-      this.load.image(
-         "playerRocket10",
-         "/assets/sprites/effects/playerRocket/rocket_1_0010.png"
-      );
-      this.load.image(
-         "playerRocket11",
-         "/assets/sprites/effects/playerRocket/rocket_1_0011.png"
-      );
-      this.load.image(
-         "playerRocket12",
-         "/assets/sprites/effects/playerRocket/rocket_1_0012.png"
-      );
-      this.load.image(
-         "playerRocket13",
-         "/assets/sprites/effects/playerRocket/rocket_1_0013.png"
-      );
-      this.load.image(
-         "playerRocket14",
-         "/assets/sprites/effects/playerRocket/rocket_1_0014.png"
-      );
-      this.load.image(
-         "playerRocket15",
-         "/assets/sprites/effects/playerRocket/rocket_1_0015.png"
-      );
+
       this.load.image(
          "redFrigateBullet",
          "/assets/sprites/effects/enemyFire/shotFired.png"
@@ -188,22 +130,28 @@ export default class GameScene extends Phaser.Scene {
    }
 
    createPlayer() {
-      //* Défini la proportion du vaisseau par rapport à la hauteur de l'écran
+      // Définition de la proportion du vaisseau par rapport à la hauteur de l'écran
       const shipProportion = 0.1;
-      this.rockets = [];
 
+      // Création du vaisseau joueur
       this.playerShip = this.physics.add
          .sprite(this.scale.width / 2, this.scale.height, "playerShip")
          .setOrigin(0.5, 1);
       const shipScale =
          (this.scale.height * shipProportion) / this.playerShip.height;
       this.playerShip.setScale(shipScale);
-
+      this.playerShip.y = this.scale.height - this.playerShip.displayHeight / 2;
       this.configurePlayerHitbox(); // Configure la hitbox directement
 
-      this.playerShip.y = this.scale.height - this.playerShip.displayHeight / 2;
+      // Séparation de la logique de création du boost dans une méthode dédiée
+      this.createPlayerBoost(shipScale);
 
-      //* Création du boost joueur
+      // Création du tir de rocket player
+      this.createPlayerRocketAnimation();
+   }
+
+   createPlayerBoost(shipScale) {
+      // Création du boost joueur
       this.boost = this.add
          .sprite(
             this.playerShip.x,
@@ -212,41 +160,31 @@ export default class GameScene extends Phaser.Scene {
          )
          .setOrigin(0.5, 0)
          .setVisible(false)
-         .setBlendMode(Phaser.BlendModes.ADD);
-      this.boost.setScale(shipScale);
+         .setBlendMode(Phaser.BlendModes.ADD)
+         .setScale(shipScale);
 
-      //* Créer un "tween" pour le clignotement
+      // Animation de clignotement pour le boost
       this.boostTween = this.tweens.add({
          targets: this.boost,
          alpha: { from: 0.4, to: 1 },
-         duration: 100, // Durée d'un clignotement
-         yoyo: true, // Fait aller l'alpha de 0.5 à 1 puis de 1 à 0.5
-         repeat: -1, // Répète l'animation indéfiniment
+         duration: 100,
+         yoyo: true,
+         repeat: -1,
       });
+   }
 
-      // Création du tir de rocket player
+   createPlayerRocketAnimation() {
+      // Création de l'animation du tir de rocket à partir d'un atlas
       this.anims.create({
-         key: "fireRockets",
-         frames: [
-            { key: "playerRocket0" },
-            { key: "playerRocket1" },
-            { key: "playerRocket2" },
-            { key: "playerRocket3" },
-            { key: "playerRocket4" },
-            { key: "playerRocket5" },
-            { key: "playerRocket6" },
-            { key: "playerRocket7" },
-            { key: "playerRocket8" },
-            { key: "playerRocket9" },
-            { key: "playerRocket10" },
-            { key: "playerRocket11" },
-            { key: "playerRocket12" },
-            { key: "playerRocket13" },
-            { key: "playerRocket14" },
-            { key: "playerRocket15" },
-         ],
-         frameRate: 10, // Nombre d'images par seconde, à ajuster selon la rapidité de l'animation souhaitée
-         repeat: 0, // 0 signifie que l'animation ne se répétera pas; elle ne sera jouée qu'une seule fois par appel
+         key: "playerRockets",
+         frames: this.anims.generateFrameNames("playerRockets", {
+            start: 0,
+            end: 15,
+            prefix: "rocket_1_",
+            zeroPad: 4,
+         }),
+         frameRate: 10,
+         repeat: 0,
       });
    }
 
@@ -263,6 +201,11 @@ export default class GameScene extends Phaser.Scene {
 
    playerHit(player, projectile) {
       projectile.destroy(); // Détruire le projectile
+
+      // Si le boost est actif, le cacher
+      if (this.boost && this.boost.visible) {
+         this.boost.setVisible(false); // Ou this.boost.destroy(); si tu préfères le détruire
+      }
 
       // Jouer l'animation d'explosion
       let explosion = this.add
@@ -288,7 +231,7 @@ export default class GameScene extends Phaser.Scene {
       let rocketLeft = this.physics.add.sprite(
          this.playerShip.x - rocketOffset,
          this.playerShip.y - this.playerShip.displayHeight / 2,
-         "rocket1"
+         "playerRockets"
       );
       rocketLeft.play("fireRockets");
 
@@ -299,7 +242,7 @@ export default class GameScene extends Phaser.Scene {
       let rocketRight = this.physics.add.sprite(
          this.playerShip.x + rocketOffset,
          this.playerShip.y - this.playerShip.displayHeight / 2,
-         "rocket1"
+         "playerRockets"
       );
       rocketRight.play("fireRockets");
 
