@@ -259,6 +259,9 @@ export default class GameScene extends Phaser.Scene {
       let explosion = this.add
          .sprite(player.x, player.y, "playerExplosion")
          .play("playerExplosion");
+
+      explosion.setScale(1.5);
+
       explosion.on("animationcomplete", () => {
          explosion.destroy();
          this.createRestartButton(); // Créer le bouton de redémarrage après l'animation d'explosion
@@ -474,53 +477,48 @@ export default class GameScene extends Phaser.Scene {
       });
    }
 
-   // Fonction pour faire apparaître un ennemi frigate avec un pattern de déplacement prédéfini moveEnemy()
    spawnRedFrigateEnemy() {
-      const frigateProportion = 0.1;
+      this.createRedFrigateSprite();
+      this.enemies.add(this.redFrigateEnemy);
+      this.createFrigateBoosts();
+      this.startFrigateShooting();
+      this.createFrigateHitbox();
+      this.hideFrigateBoostsAfterDelay();
+      this.applyRandomChoreography();
+   }
 
-      // Crée l'ennemi frigate hors de l'écran par le haut
+   // Fonction pour faire apparaître un ennemi frigate avec un pattern de déplacement prédéfini moveEnemy()
+   createRedFrigateSprite() {
+      const frigateProportion = 0.1;
       this.redFrigateEnemy = this.physics.add
          .sprite(this.scale.width / 2, -50, "redFrigate")
          .setOrigin(0.5, 0);
+
       const redFrigateScale =
          (this.scale.height * frigateProportion) / this.redFrigateEnemy.height;
       this.redFrigateEnemy.setScale(redFrigateScale);
-
-      // Initialise les propriétés originales après la création et l'application de la première échelle
       this.redFrigateEnemy.originalWidth = this.redFrigateEnemy.width;
       this.redFrigateEnemy.originalHeight = this.redFrigateEnemy.height;
 
-      // Redimensionnement après avoir défini les dimensions originales
-      const initialWidth = 80; // La largeur désirée
+      const initialWidth = 80;
       const newScale =
          (initialWidth / this.redFrigateEnemy.originalWidth) *
          this.redFrigateEnemy.scaleX;
       this.redFrigateEnemy.setScale(newScale);
+   }
 
-      this.enemies.add(this.redFrigateEnemy);
-
-      // Crée les boosts pour l'ennemi
-      this.createFrigateBoosts(this.redFrigateEnemy);
-
-      // Démarre le tir de l'ennemi
+   startFrigateShooting() {
       this.redFrigateEnemy.shootTimer = this.time.addEvent({
          delay: 1500,
          callback: this.redFrigateShot,
          callbackScope: this,
          loop: true,
       });
+   }
 
-      // Crée la hitbox pour l'ennemi
-      this.createFrigateHitbox(this.redFrigateEnemy);
-
-      // Rend les boosts invisibles dès le départ
-      this.redFrigateEnemy.leftBoost.setVisible(true);
-      this.redFrigateEnemy.rightBoost.setVisible(true);
-
-      // Masque les propulseurs après un certain temps
+   hideFrigateBoostsAfterDelay() {
       this.time.delayedCall(1500, () => {
          if (
-            this.redFrigateEnemy &&
             this.redFrigateEnemy.leftBoost &&
             this.redFrigateEnemy.rightBoost
          ) {
@@ -528,12 +526,17 @@ export default class GameScene extends Phaser.Scene {
             this.redFrigateEnemy.rightBoost.setVisible(false);
          }
       });
+   }
 
-      // Applique une chorégraphie aléatoire
-      const choregraphy = this.getRandomChoregraphy(this.redFrigateEnemy);
-      choregraphy.forEach((tween) => {
-         this.tweens.add(tween);
-      });
+   applyRandomChoreography() {
+      if (this.redFrigateEnemy) {
+         const choreography = this.getRandomChoregraphy(this.redFrigateEnemy);
+         choreography.forEach((tween) => {
+            this.tweens.add(tween);
+         });
+      } else {
+         console.error("No redFrigateEnemy to apply choreography to.");
+      }
    }
 
    createFrigateHitbox(redFrigateScale) {
@@ -575,30 +578,35 @@ export default class GameScene extends Phaser.Scene {
    enemyProjectiles() {
       this.enemyProjectiles = this.physics.add.group({
          defaultKey: "redFrigateBullet",
-         maxSize: 10, // ou un autre nombre qui convient à votre jeu
+         maxSize: 10,
       });
    }
 
-   createFrigateBoosts(redFrigateEnemy) {
-      const boostOffsetX = redFrigateEnemy.displayWidth * 0.25;
-      const boostOffsetY = redFrigateEnemy.displayHeight * 0.5;
+   createFrigateBoosts() {
+      if (!this.redFrigateEnemy) {
+         console.error("redFrigateEnemy is not defined.");
+         return;
+      }
+
+      const boostOffsetX = this.redFrigateEnemy.displayWidth * 0.25;
+      const boostOffsetY = this.redFrigateEnemy.displayHeight * 0.5;
       const boostScale = 0.2;
 
       // Création et positionnement des propulseurs
-      redFrigateEnemy.leftBoost = this.add
+      this.redFrigateEnemy.leftBoost = this.add
          .sprite(
-            redFrigateEnemy.x - boostOffsetX,
-            redFrigateEnemy.y + boostOffsetY,
+            this.redFrigateEnemy.x - boostOffsetX,
+            this.redFrigateEnemy.y + boostOffsetY,
             "redFrigateEnemyBoost"
          )
          .setOrigin(-0.4, 3)
          .setVisible(true)
          .setScale(boostScale);
 
-      redFrigateEnemy.rightBoost = this.add
+      this.redFrigateEnemy.rightBoost = this.add
          .sprite(
-            redFrigateEnemy.x + boostOffsetX,
-            redFrigateEnemy.y + boostOffsetY,
+            this.redFrigateEnemy.x + boostOffsetX,
+            this.redFrigateEnemy.y + boostOffsetY,
             "redFrigateEnemyBoost"
          )
          .setOrigin(1.4, 3)
@@ -607,7 +615,10 @@ export default class GameScene extends Phaser.Scene {
 
       // Ajout d'un effet de clignotement aux propulseurs
       this.tweens.add({
-         targets: [redFrigateEnemy.leftBoost, redFrigateEnemy.rightBoost], // Cible les deux propulseurs
+         targets: [
+            this.redFrigateEnemy.leftBoost,
+            this.redFrigateEnemy.rightBoost,
+         ],
          alpha: { from: 0.4, to: 1 },
          duration: 100,
          yoyo: true,
@@ -620,7 +631,6 @@ export default class GameScene extends Phaser.Scene {
       const choregraphies = [
          this.getChoregraphy1(redFrigateEnemy),
          this.getChoregraphy2(redFrigateEnemy),
-         // Ajoute autant de chorégraphies que tu veux ici
       ];
 
       // Choisis une chorégraphie aléatoire
@@ -645,14 +655,13 @@ export default class GameScene extends Phaser.Scene {
             ease: "Sine.easeInOut",
             duration: 2000,
          },
-         // Ajoute plus de tweens pour compléter la chorégraphie
+         // Ajout de tweens supplémentaires pour plus de mouvements
       ];
    }
 
    getChoregraphy2(redFrigateEnemy) {
-      // L'ennemi entre dans la scène depuis le côté gauche et s'arrête au milieu
-      const stopX = this.scale.width / 2; // Point d'arrêt au milieu de l'écran en largeur
-      const stopY = this.scale.height / 2; // Point d'arrêt au milieu de l'écran en hauteur
+      const stopX = this.scale.width / 2;
+      const stopY = this.scale.height / 2;
 
       return [
          {
@@ -661,10 +670,7 @@ export default class GameScene extends Phaser.Scene {
             y: stopY,
             ease: "Sine.easeInOut",
             duration: 2000,
-            onComplete: () => {
-               // Ici, définir ce que peut faire l'ennemi une fois qu'il s'est arrêté
-               // Par exemple, arrêter tout mouvement ou déclencher une action spécifique
-            },
+            onComplete: () => {},
          },
       ];
    }
