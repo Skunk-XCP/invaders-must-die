@@ -1,15 +1,5 @@
 import Phaser from "phaser";
 
-// export const spawnRedFrigateEnemy = (scene) => {
-//    // scene.createRedFrigateSprite();
-//    // scene.enemies.add(scene.redFrigateEnemy);
-//    // scene.createFrigateBoosts();
-//    // scene.startFrigateShooting();
-//    // scene.createFrigateHitbox();
-//    // scene.hideFrigateBoostsAfterDelay();
-//    // scene.applyRandomChoreography();
-// };
-
 export const startFrigateShooting = (scene) => {
    scene.redFrigateEnemy.shootTimer = scene.time.addEvent({
       delay: 1500,
@@ -85,30 +75,56 @@ export const redFrigateShot = (scene) => {
    bulletRight.setScale(bulletScale);
 };
 
+// export const enemyProjectiles = (scene) => {
+//    scene.enemyProjectiles = scene.physics.add.group({
+//       defaultKey: "redFrigateBullet",
+//       maxSize: 10,
+//    });
+// };
+
 export const enemyProjectiles = (scene) => {
    scene.enemyProjectiles = scene.physics.add.group({
-      defaultKey: "redFrigateBullet",
+      classType: Phaser.GameObjects.Sprite,
       maxSize: 10,
    });
+   console.log("Enemy projectiles group created.");
 };
 
 export const hitEnemy = (scene, rocket, enemy) => {
-   let offsetX = 0;
-   let offsetY = 0;
-   // Positionne l'animation d'explosion où l'ennemi a été touché
+   if (!rocket || !enemy || !rocket.active || !enemy.active) {
+      console.warn("hitEnemy appelé avec des sprites non valides");
+      return;
+   }
+
+   if (scene.anims.exists("explosion_01")) {
+      let explosion = scene.add
+         .sprite(enemy.x, enemy.y, "explosion_01")
+         .play("explosion_01");
+      explosion.on("animationcomplete", () => {
+         explosion.destroy();
+      });
+   } else {
+      console.warn('Animation "explosion_01" non disponible.');
+   }
+
    let explosion = scene.add
-      .sprite(enemy.x + offsetX, enemy.y + offsetY, "explosion_01")
+      .sprite(enemy.x, enemy.y, "explosion_01")
       .play("explosion_01");
+   explosion.on("animationcomplete", () => {
+      console.log("Explosion animation completed.");
+      explosion.destroy();
+   });
 
-   // Détruit le sprite de l'explosion une fois l'animation terminée
-   explosion.on("animationcomplete", () => explosion.destroy());
-
+   console.log("Destroying rocket and enemy.");
    rocket.destroy();
 
    if (enemy.shootTimer) {
-      enemy.shootTimer.remove(false); // Arrête le timer sans appeler le callback final
+      console.log("Removing enemy shoot timer.");
+      enemy.shootTimer.remove(false);
    }
+
    enemy.destroy();
+   console.log("Enemy destroyed.");
 };
 
 export const enemyGroup = (scene) => {

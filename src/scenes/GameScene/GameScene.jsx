@@ -15,11 +15,13 @@ import {
 import {
    applyRandomChoreography,
    checkEnemyBounds,
+   createExplosion_01,
    createFrigateBoosts,
    createFrigateHitbox,
    createRedFrigateSprite,
    enemyGroup,
    hideFrigateBoostsAfterDelay,
+   hitEnemy,
    startFrigateShooting,
 } from "./Enemies";
 
@@ -102,6 +104,8 @@ export default class GameScene extends Phaser.Scene {
       createPlayerBoost(this);
       handlePlayerMovement(this);
       this.enemies = this.physics.add.group();
+      createExplosion_01(this);
+      hitEnemy(this);
       createRedFrigateSprite(this);
       createFrigateBoosts(this);
       createFrigateHitbox(this);

@@ -1,9 +1,12 @@
+import { hitEnemy } from "../Enemies/EnemyActions";
+import { playerHit } from "../Player/PlayerActions";
+
 export const setupColliders = (scene) => {
    // Collision entre les roquettes du joueur et les ennemis
    scene.physics.add.collider(
       scene.rockets,
       scene.enemies,
-      scene.hitEnemy,
+      (rocket, enemy) => hitEnemy(scene, rocket, enemy),
       null,
       scene
    );
@@ -12,7 +15,7 @@ export const setupColliders = (scene) => {
    scene.physics.add.overlap(
       scene.playerShip,
       scene.enemyProjectiles,
-      scene.playerHit,
+      (player, projectile) => playerHit(scene, projectile, player),
       null,
       scene
    );
@@ -21,7 +24,7 @@ export const setupColliders = (scene) => {
    scene.physics.add.overlap(
       scene.playerShip,
       scene.enemies,
-      scene.playerAndEnemyCollide,
+      (player, enemy) => playerAndEnemyCollide(scene, player, enemy),
       null,
       scene
    );

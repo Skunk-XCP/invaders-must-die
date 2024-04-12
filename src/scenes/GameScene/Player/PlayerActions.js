@@ -20,17 +20,18 @@ export const createPlayer = (scene) => {
 
    // Stockage du vaisseau dans la scène pour un accès ultérieur
    scene.playerShip = playerShip;
+   configurePlayerHitbox(scene, playerShip);
 };
 
-export const configurePlayerHitbox = (scene) => {
+export const configurePlayerHitbox = (scene, playerShip) => {
    //* Définie taille hitbox basée sur l'échelle de dimension du ship
-   const hitboxWidth = this.playerShip.displayWidth * 0.3;
-   const hitboxHeight = this.playerShip.displayHeight * 0.3;
-   const offsetX = (this.playerShip.width - hitboxWidth) / 2;
-   const offsetY = (this.playerShip.height - hitboxHeight) / 2;
+   const hitboxWidth = scene.playerShip.displayWidth * 0.3;
+   const hitboxHeight = scene.playerShip.displayHeight * 0.3;
+   const offsetX = (scene.playerShip.width - hitboxWidth) / 2;
+   const offsetY = (scene.playerShip.height - hitboxHeight) / 2;
 
-   this.playerShip.body.setSize(hitboxWidth, hitboxHeight);
-   this.playerShip.body.setOffset(offsetX, offsetY);
+   scene.playerShip.body.setSize(hitboxWidth, hitboxHeight);
+   scene.playerShip.body.setOffset(offsetX, offsetY);
 };
 
 export const playerHit = (scene, projectile, player) => {
