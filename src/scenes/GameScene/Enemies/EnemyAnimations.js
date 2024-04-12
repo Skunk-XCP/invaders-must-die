@@ -79,27 +79,27 @@ export const createFrigateBoosts = (scene) => {
    });
 };
 
-// créer applyRandomChoreography
-export const applyRandomChoreography = (scene) => {
-   if (scene.redFrigateEnemy) {
-      const choreography = getRandomChoregraphy(scene.redFrigateEnemy);
-      choreography.forEach((tween) => {
-         scene.tweens.add(tween);
-      });
-   } else {
-      console.error("No redFrigateEnemy to apply choreography to.");
-   }
-};
-
-// getRandomChoregraphy
-export const getRandomChoregraphy = (redFrigateEnemy) => {
+export const getRandomChoregraphy = (scene, redFrigateEnemy) => {
    const choregraphies = [
-      getChoregraphy1(redFrigateEnemy),
-      getChoregraphy2(redFrigateEnemy),
+      getChoregraphy1(scene, redFrigateEnemy),
+      getChoregraphy2(scene, redFrigateEnemy),
    ];
 
-   // Choisis une chorégraphie aléatoire
+   // Choix aléatoire d'une chorégraphie
    return choregraphies[Phaser.Math.Between(0, choregraphies.length - 1)];
+};
+
+// Appliquer une chorégraphie aléatoire
+export const applyRandomChoreography = (scene) => {
+   if (!scene.redFrigateEnemy || !scene.redFrigateEnemy.active) {
+      console.error("Red Frigate Enemy is not defined or not active.");
+      return;
+   }
+
+   const choreography = getRandomChoregraphy(scene, scene.redFrigateEnemy);
+   choreography.forEach((tween) => {
+      scene.tweens.add(tween);
+   });
 };
 
 export const getChoregraphy1 = (scene, redFrigateEnemy) => {
@@ -107,12 +107,7 @@ export const getChoregraphy1 = (scene, redFrigateEnemy) => {
       {
          targets: redFrigateEnemy,
          x: scene.scale.width * 0.75,
-         ease: "Sine.easeInOut",
-         duration: 2000,
-      },
-      {
-         targets: redFrigateEnemy,
-         y: scene.scale.height * 0.5,
+         y: 100, // Test: déplacer vers une position verticale visible
          ease: "Sine.easeInOut",
          duration: 2000,
       },
@@ -121,7 +116,7 @@ export const getChoregraphy1 = (scene, redFrigateEnemy) => {
 
 export const getChoregraphy2 = (scene, redFrigateEnemy) => {
    const stopX = scene.scale.width / 2;
-   const stopY = scene.scale.height / 2;
+   const stopY = 100; // Test: déplacer vers une position verticale visible
 
    return [
       {
@@ -130,7 +125,6 @@ export const getChoregraphy2 = (scene, redFrigateEnemy) => {
          y: stopY,
          ease: "Sine.easeInOut",
          duration: 2000,
-         onComplete: () => {},
       },
    ];
 };

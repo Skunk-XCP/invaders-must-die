@@ -111,7 +111,7 @@ export default class GameScene extends Phaser.Scene {
       setupColliders(this);
       // playerAndEnemyCollide(this);
 
-      this.enemyProjectiles = this.physics.add.group();
+      // this.enemyProjectiles = this.physics.add.group();
       enemyGroup(this);
       this.bullets = [];
    }
