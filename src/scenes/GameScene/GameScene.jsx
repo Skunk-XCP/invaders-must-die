@@ -21,7 +21,6 @@ import {
    createRedFrigateSprite,
    enemyGroup,
    hideFrigateBoostsAfterDelay,
-   hitEnemy,
    startFrigateShooting,
 } from "./Enemies";
 
@@ -105,7 +104,6 @@ export default class GameScene extends Phaser.Scene {
       handlePlayerMovement(this);
       this.enemies = this.physics.add.group();
       createExplosion_01(this);
-      hitEnemy(this);
       createRedFrigateSprite(this);
       createFrigateBoosts(this);
       createFrigateHitbox(this);
@@ -113,9 +111,6 @@ export default class GameScene extends Phaser.Scene {
       hideFrigateBoostsAfterDelay(this);
       applyRandomChoreography(this);
       setupColliders(this);
-      // playerAndEnemyCollide(this);
-
-      // this.enemyProjectiles = this.physics.add.group();
       enemyGroup(this);
       this.bullets = [];
    }

@@ -1,5 +1,6 @@
 import { hitEnemy } from "../Enemies/EnemyActions";
 import { playerHit } from "../Player/PlayerActions";
+import { createRestartButton } from "../UI/RestartButton";
 
 export const setupColliders = (scene) => {
    // Collision entre les roquettes du joueur et les ennemis
@@ -37,7 +38,7 @@ export const playerAndEnemyCollide = (scene, player, enemy) => {
       .play("playerExplosion");
    playerExplosion.on("animationcomplete", () => {
       playerExplosion.destroy();
-      scene.createRestartButton(); // Ajoute cette ligne ici
+      createRestartButton(scene);
    });
 
    // Jouer l'animation d'explosion pour l'ennemi
@@ -45,6 +46,10 @@ export const playerAndEnemyCollide = (scene, player, enemy) => {
       .sprite(enemy.x, enemy.y, "explosion_01")
       .play("explosion_01");
    enemyExplosion.on("animationcomplete", () => enemyExplosion.destroy());
+
+   if (scene.boost) {
+      scene.boost.setVisible(false); // Assure que le boost est invisible
+   }
 
    // Détruire le joueur et l'ennemi
    player.destroy();

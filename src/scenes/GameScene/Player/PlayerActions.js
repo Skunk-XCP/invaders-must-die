@@ -38,7 +38,7 @@ export const playerHit = (scene, projectile, player) => {
    projectile.destroy(); // Détruire le projectile
 
    // Jouer l'animation d'explosion et cacher ou détruire le boost
-   let explosion = this.add
+   let explosion = scene.add
       .sprite(player.x, player.y, "playerExplosion")
       .play("playerExplosion");
 
@@ -46,11 +46,11 @@ export const playerHit = (scene, projectile, player) => {
 
    explosion.on("animationcomplete", () => {
       explosion.destroy();
-      this.createRestartButton(); // Créer le bouton de redémarrage après l'animation d'explosion
+      scene.createRestartButton(); // Créer le bouton de redémarrage après l'animation d'explosion
    });
 
    player.destroy(); // Détruire le joueur
-   this.boost?.setVisible(false); // Cacher le boost si actif
+   scene.boost?.setVisible(false); // Cacher le boost si actif
 };
 
 export const fireRockets = (scene) => {
@@ -173,10 +173,10 @@ export const updateRocketPositions = (scene) => {
 };
 
 export const updateBoostPosition = (scene) => {
-   if (!scene.boost || !scene.playerShip) return;
-
-   scene.boost.x = scene.playerShip.x;
-   scene.boost.y = scene.playerShip.y - scene.playerShip.displayHeight / 2;
+   if (scene.boost && scene.playerShip) {
+      scene.boost.x = scene.playerShip.x;
+      scene.boost.y = scene.playerShip.y - scene.playerShip.displayHeight / 2; // Ajuster cette valeur si nécessaire
+   }
 };
 
 export const rocketGroup = (scene) => {
