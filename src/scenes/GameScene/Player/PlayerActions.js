@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { createPlayerBoost } from "./PlayerAnimations";
 
 export const createPlayer = (scene) => {
    // Définition de la proportion du vaisseau par rapport à la hauteur de l'écran
@@ -21,6 +22,9 @@ export const createPlayer = (scene) => {
    // Stockage du vaisseau dans la scène pour un accès ultérieur
    scene.playerShip = playerShip;
    configurePlayerHitbox(scene, playerShip);
+
+   // Création du boost joueur
+   createPlayerBoost(scene, shipScale);
 };
 
 export const configurePlayerHitbox = (scene, playerShip) => {

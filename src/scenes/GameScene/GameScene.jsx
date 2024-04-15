@@ -1,7 +1,6 @@
 import Phaser from "phaser";
 import {
    createPlayer,
-   createPlayerBoost,
    createPlayerRocketAnimation,
    handlePlayerMovement,
    handleRocketFiring,
@@ -100,7 +99,6 @@ export default class GameScene extends Phaser.Scene {
       rocketGroup(this);
       createPlayerRocketAnimation(this);
       playerExplosion(this);
-      createPlayerBoost(this);
       handlePlayerMovement(this);
       this.enemies = this.physics.add.group();
       createExplosion_01(this);
