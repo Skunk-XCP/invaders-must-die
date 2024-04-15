@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { createRestartButton } from "../UI/RestartButton";
 import { createPlayerBoost } from "./PlayerAnimations";
 
 export const createPlayer = (scene) => {
@@ -49,12 +50,12 @@ export const playerHit = (scene, projectile, player) => {
    explosion.setScale(1.5);
 
    explosion.on("animationcomplete", () => {
+      createRestartButton(scene);
       explosion.destroy();
-      scene.createRestartButton(); // Créer le bouton de redémarrage après l'animation d'explosion
    });
 
-   player.destroy(); // Détruire le joueur
-   scene.boost?.setVisible(false); // Cacher le boost si actif
+   player.destroy();
+   scene.boost?.setVisible(false);
 };
 
 export const fireRockets = (scene) => {

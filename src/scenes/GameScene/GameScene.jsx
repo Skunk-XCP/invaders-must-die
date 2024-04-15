@@ -19,6 +19,7 @@ import {
    createFrigateHitbox,
    createRedFrigateSprite,
    enemyGroup,
+   enemyProjectiles,
    hideFrigateBoostsAfterDelay,
    startFrigateShooting,
 } from "./Enemies";
@@ -105,6 +106,7 @@ export default class GameScene extends Phaser.Scene {
       createRedFrigateSprite(this);
       createFrigateBoosts(this);
       createFrigateHitbox(this);
+      enemyProjectiles(this);
       startFrigateShooting(this);
       hideFrigateBoostsAfterDelay(this);
       applyRandomChoreography(this);

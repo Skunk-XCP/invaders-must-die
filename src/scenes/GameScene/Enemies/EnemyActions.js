@@ -1,9 +1,12 @@
 import Phaser from "phaser";
 
 export const startFrigateShooting = (scene) => {
+   if (!scene.redFrigateEnemy || !scene.redFrigateEnemy.active) return;
+
    scene.redFrigateEnemy.shootTimer = scene.time.addEvent({
       delay: 1500,
-      callback: scene.redFrigateShot,
+      callback: () => redFrigateShot(scene),
+      // Assure-toi que le callbackScope est correct s'il est nécessaire
       callbackScope: scene,
       loop: true,
    });
@@ -28,11 +31,17 @@ export const createRedFrigateSprite = (scene) => {
    scene.redFrigateEnemy.setScale(newScale);
 
    scene.enemies.add(scene.redFrigateEnemy); // Ajout à la collection des ennemis
+
+   startFrigateShooting(scene);
 };
 
 export const hideFrigateBoostsAfterDelay = (scene) => {
    scene.time.delayedCall(1500, () => {
-      if (scene.redFrigateEnemy.leftBoost && scene.redFrigateEnemy.rightBoost) {
+      if (
+         scene.redFrigateEnemy &&
+         scene.redFrigateEnemy.leftBoost &&
+         scene.redFrigateEnemy.rightBoost
+      ) {
          scene.redFrigateEnemy.leftBoost.setVisible(false);
          scene.redFrigateEnemy.rightBoost.setVisible(false);
       }
@@ -51,80 +60,70 @@ export const createFrigateHitbox = (scene) => {
 };
 
 export const redFrigateShot = (scene) => {
-   // s'assurer que this.redFrigateEnemy existe
-   if (!scene.redFrigateEnemy || !scene.redFrigateEnemy.active) return;
+   if (
+      !scene.redFrigateEnemy ||
+      !scene.redFrigateEnemy.active ||
+      !scene.redFrigateEnemy.body
+   )
+      return;
 
    const bulletSpeed = 200;
    const bulletScale = 0.5;
 
-   // Création et ajout des projectiles dans le groupe avec les propriétés physiques
    let bulletLeft = scene.enemyProjectiles.create(
       scene.redFrigateEnemy.x - 7,
       scene.redFrigateEnemy.y + 60,
       "redFrigateBullet"
    );
-   bulletLeft.setVelocityY(bulletSpeed);
-   bulletLeft.setScale(bulletScale);
+
+   if (bulletLeft) {
+      bulletLeft.setVelocityY(bulletSpeed);
+      bulletLeft.setScale(bulletScale);
+   }
 
    let bulletRight = scene.enemyProjectiles.create(
       scene.redFrigateEnemy.x + 7,
       scene.redFrigateEnemy.y + 60,
       "redFrigateBullet"
    );
-   bulletRight.setVelocityY(bulletSpeed);
-   bulletRight.setScale(bulletScale);
+   if (bulletRight) {
+      bulletRight.setVelocityY(bulletSpeed);
+      bulletRight.setScale(bulletScale);
+   }
 };
-
-// export const enemyProjectiles = (scene) => {
-//    scene.enemyProjectiles = scene.physics.add.group({
-//       defaultKey: "redFrigateBullet",
-//       maxSize: 10,
-//    });
-// };
 
 export const enemyProjectiles = (scene) => {
    scene.enemyProjectiles = scene.physics.add.group({
-      classType: Phaser.GameObjects.Sprite,
+      defaultKey: "redFrigateBullet",
       maxSize: 10,
    });
-   console.log("Enemy projectiles group created.");
 };
 
 export const hitEnemy = (scene, rocket, enemy) => {
    if (!rocket || !enemy || !rocket.active || !enemy.active) {
-      console.warn("hitEnemy appelé avec des sprites non valides");
       return;
-   }
-
-   if (scene.anims.exists("explosion_01")) {
-      let explosion = scene.add
-         .sprite(enemy.x, enemy.y, "explosion_01")
-         .play("explosion_01");
-      explosion.on("animationcomplete", () => {
-         explosion.destroy();
-      });
-   } else {
-      console.warn('Animation "explosion_01" non disponible.');
    }
 
    let explosion = scene.add
       .sprite(enemy.x, enemy.y, "explosion_01")
       .play("explosion_01");
    explosion.on("animationcomplete", () => {
-      console.log("Explosion animation completed.");
       explosion.destroy();
    });
 
-   console.log("Destroying rocket and enemy.");
    rocket.destroy();
 
-   if (enemy.shootTimer) {
-      console.log("Removing enemy shoot timer.");
-      enemy.shootTimer.remove(false);
+   if (scene.redFrigateEnemy && scene.redFrigateEnemy.shootTimer) {
+      scene.redFrigateEnemy.shootTimer.remove();
+      scene.redFrigateEnemy.shootTimer = null;
+   }
+
+   if (scene.redFrigateEnemy) {
+      scene.redFrigateEnemy.destroy();
+      scene.redFrigateEnemy = null; // S'assurer de mettre à null après la destruction
    }
 
    enemy.destroy();
-   console.log("Enemy destroyed.");
 };
 
 export const enemyGroup = (scene) => {
